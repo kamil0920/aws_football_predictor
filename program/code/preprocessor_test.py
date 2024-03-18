@@ -6,20 +6,18 @@ import shutil
 import tarfile
 import pytest
 import tempfile
-import joblib
+from dotenv import load_dotenv
 from preprocessor import preprocess
 
-DATA_FILEPATH_0 = Path(r"C:\Users\kamil\Documents\football_project\football_predictor\data\new_features\df.csv")
-DATA_FILEPATH_1 = Path(r"C:\Users\kamil\Documents\football_project\football_predictor\data\new_features\y.csv")
-
+load_dotenv()
 
 @pytest.fixture(scope="function", autouse=False)
 def directory():
     directory = tempfile.mkdtemp()
     input_directory = Path(directory) / "input"
     input_directory.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(DATA_FILEPATH_0, input_directory / "df.csv")
-    shutil.copy2(DATA_FILEPATH_1, input_directory / "y.csv")
+    shutil.copy2(str(os.environ['DATA_FILEPATH_X']), input_directory / "df.csv")
+    shutil.copy2(str(os.environ['DATA_FILEPATH_Y']), input_directory / "y.csv")
 
     directory = Path(directory)
     preprocess(base_directory=directory)

@@ -74,8 +74,8 @@ def _split_data(df):
     Splits the data into three sets: train, validation and test.
     """
 
-    df_train, temp = train_test_split(df, test_size=0.2, random_state=42)
-    df_validation, df_test = train_test_split(temp, test_size=0.5)
+    df_train, temp = train_test_split(df, test_size=0.3, random_state=42, stratify=df['result_match'])
+    df_validation, df_test = train_test_split(temp, test_size=0.5, stratify=temp['result_match'])
 
     return df_train, df_validation, df_test
 
