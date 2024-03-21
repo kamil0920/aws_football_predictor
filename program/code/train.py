@@ -39,9 +39,10 @@ def train(model_directory, train_path, validation_path, early_stopping_rounds=25
 
     f1, model = evaluate_model(X_train, X_validation, y_train, y_validation, early_stopping_rounds)
 
-    print(f"Validation f1 score: {f1}")
+    print("F1 score: {:.2f}".format(f1))
 
-    model_directory = Path(model_directory / "001")
+    model_directory = Path(model_directory) / "001"
+
     model_directory.mkdir(parents=True, exist_ok=True)
 
     model_filepath = model_directory / "saved_model.bst"
