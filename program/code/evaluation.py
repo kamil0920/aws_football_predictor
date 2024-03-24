@@ -4,7 +4,7 @@ import pandas as pd
 
 from pathlib import Path
 from xgboost import XGBClassifier
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, precision_score, recall_score
 
 
 def evaluate(model_path, test_path, output_path):
@@ -24,13 +24,25 @@ def evaluate(model_path, test_path, output_path):
     model.load_model(str(model_filepath))
 
     predictions = model.predict(X_test)
+
     f1 = f1_score(y_test, predictions)
+    precision = precision_score(y_test, predictions)
+    recall = recall_score(y_test, predictions)
+
     print(f"Test f1 score: {f1}")
+    print(f"Test precision score: {precision}")
+    print(f"Test recall score: {recall}")
 
     evaluation_report = {
         "metrics": {
             "f1": {
                 "value": f1
+            },
+            "precision": {
+                "value": precision
+            },
+            "recall": {
+                "value": recall
             },
         },
     }

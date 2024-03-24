@@ -72,4 +72,4 @@ def test_evaluation_report_contains_accuracy(directory):
         report = json.load(file)
 
     assert "metrics" in report
-    assert "f1" in report["metrics"]
+    assert "precision" in report["metrics"]
