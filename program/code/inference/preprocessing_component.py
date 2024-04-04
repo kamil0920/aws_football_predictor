@@ -71,8 +71,8 @@ def output_fn(prediction, accept):
     Formats the prediction output to generate a response.
 
     The default accept/content-type between containers for serial inference is JSON.
-    Since this model will preceed a TensorFlow model, we want to return a JSON object
-    following TensorFlow's input requirements.
+    Since this model will preceed a XGBoost model, we want to return a JSON object
+    following XGBoost's input requirements.
     """
 
     if prediction is None:
