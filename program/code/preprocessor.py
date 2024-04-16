@@ -10,6 +10,7 @@ from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OrdinalEncoder
 
 
 def preprocess(base_directory):
@@ -18,6 +19,10 @@ def preprocess(base_directory):
     """
 
     df = _read_data_from_input_csv_files(base_directory)
+
+    target_transformer = ColumnTransformer(
+        transformers=[("result_match", OrdinalEncoder(), [0])]
+    )
 
     numeric_transformer = make_pipeline(
         SimpleImputer(strategy="median"),
@@ -33,9 +38,9 @@ def preprocess(base_directory):
 
     _save_baseline(base_directory, df_test)
 
-    y_train = np.array(df_train.result_match.values).reshape(-1, 1)
-    y_validation = np.array(df_validation.result_match.values).reshape(-1, 1)
-    y_test = np.array(df_test.result_match.values).reshape(-1, 1)
+    y_train = target_transformer.fit_transform(np.array(df_train.result_match.values).reshape(-1, 1))
+    y_validation = target_transformer.transform(np.array(df_validation.result_match.values).reshape(-1, 1))
+    y_test = target_transformer.transform(np.array(df_test.result_match.values).reshape(-1, 1))
 
     df_train = df_train.drop("result_match", axis=1)
     df_validation = df_validation.drop("result_match", axis=1)
@@ -46,7 +51,7 @@ def preprocess(base_directory):
     X_test = features_transformer.transform(df_test)
 
     _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X_test, y_test)
-    _save_model(base_directory, features_transformer)
+    _save_model(base_directory, target_transformer, features_transformer)
 
 
 def _read_data_from_input_csv_files(base_directory):
@@ -113,21 +118,22 @@ def _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X
     pd.DataFrame(test).to_csv(test_path / "test.csv", header=False, index=False)
 
 
-def _save_model(base_directory, features_transformer):
+def _save_model(base_directory, target_transformer, features_transformer):
     """
     This function creates a model.tar.gz file that contains the two transformation
     pipelines we built to transform the data.
     """
 
     with tempfile.TemporaryDirectory() as directory:
+        joblib.dump(target_transformer, os.path.join(directory, "target.joblib"))
         joblib.dump(features_transformer, os.path.join(directory, "features.joblib"))
 
         model_path = Path(base_directory) / "model"
         model_path.mkdir(parents=True, exist_ok=True)
 
         with tarfile.open(f"{str(model_path / 'model.tar.gz')}", "w:gz") as tar:
+            tar.add(os.path.join(directory, "target.joblib"), arcname="target.joblib")
             tar.add(os.path.join(directory, "features.joblib"), arcname="features.joblib")
-
 
 if __name__ == "__main__":
     preprocess(base_directory="/opt/ml/processing")
