@@ -36,7 +36,7 @@ def preprocess(base_directory):
 
     df_train, df_validation, df_test = _split_data(df)
 
-    _save_baseline(base_directory, df_test)
+    _save_baseline(base_directory, df_train, df_test)
 
     y_train = target_transformer.fit_transform(np.array(df_train.result_match.values).reshape(-1, 1))
     y_validation = target_transformer.transform(np.array(df_validation.result_match.values).reshape(-1, 1))
@@ -84,15 +84,25 @@ def _split_data(df):
     return df_train, df_validation, df_test
 
 
-def _save_baseline(base_directory, df_test):
+def _save_baseline(base_directory, df_train, df_test):
     """
-    This function saves the untransformed test split to disk. This file will
-    be used later as a baseline to monitor the performance of the model.
+    During the data and quality monitoring steps, we will need baselines
+    to compute constraints and statistics. This function save untransformed data
+    to disk so we can use them as baselines later.
     """
 
-    baseline_path = Path(base_directory) / f"baseline"
-    baseline_path.mkdir(parents=True, exist_ok=True)
-    df_test.to_csv(baseline_path / "baseline.csv", header=False, index=False)
+    for data, split in [(df_train, 'train'), (df_test, 'test')]:
+        baseline_path = Path(base_directory) / f"{split}-baseline"
+        baseline_path.mkdir(parents=True, exist_ok=True)
+
+        df = data.copy().dropna()
+
+        # We want to save the header only for the train baseline
+        # not for test baseline. We'll use test baseline to generate predictions
+        # later and we can't have header line because model won't
+        # be able to make prediction for it.
+        header = split == 'train'
+        df.to_csv(baseline_path / f"{split}-baseline.csv", header=header, index=False)
 
 
 def _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X_test, y_test):
