@@ -17,8 +17,8 @@ def evaluate(model_path, test_path, output_path):
     with tarfile.open(Path(model_path) / "model.tar.gz") as tar:
         tar.extractall(path=Path(model_path))
 
-    extracted_dir = Path(model_path) / "001"
-    model_filepath = extracted_dir / "saved_model.bst"
+    extracted_dir = Path(model_path)
+    model_filepath = extracted_dir / "saved_model.xgb"
 
     model = XGBClassifier()
     model.load_model(str(model_filepath))

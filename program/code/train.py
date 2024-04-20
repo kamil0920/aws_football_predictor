@@ -41,11 +41,11 @@ def train(model_directory, train_path, validation_path, hyperparameters, early_s
 
     print("F1 score: {:.2f}".format(f1))
 
-    model_directory = Path(model_directory) / "001"
+    model_directory = Path(model_directory)
 
     model_directory.mkdir(parents=True, exist_ok=True)
 
-    model_filepath = model_directory / "saved_model.bst"
+    model_filepath = model_directory / "saved_model.xgb"
 
     model.save_model(str(model_filepath))
 
