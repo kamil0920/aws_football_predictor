@@ -52,7 +52,8 @@ def lambda_handler(event, context):
         ProductionVariants=[
             {
                 "ModelName": model_name,
-                "InstanceType": "ml.m5.xlarge",
+                "InstanceType": "ml.c5.xlarge",
+                # "InstanceType": "ml.m5.xlarge",
                 "InitialVariantWeight": 1,
                 "InitialInstanceCount": 1,
                 "VariantName": "AllTraffic",
