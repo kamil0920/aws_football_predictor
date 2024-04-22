@@ -38,83 +38,61 @@ def directory():
 
 def test_input_csv_drops_target_column_if_present():
     input_data = """
-    77,77,77,77,77,77,76,75,75,79,77,80,80,80,80,80,80,78,80,86,73,88,2.15,2.24,1.63,1.67,46,65,2.6942883775913384,1.008610065655301,76.73,80.45,42.34,27.71,5.379,7.424,50.032,45.678,76.5,80.83,80.0,77.0,76.72727272727273,80.45454545454545,2.1244075829383884,2.0757062146892653,1
-    """
+        89.0,79.0,59.0,69.0,69.0,79.0,69.0,79.0,69.0,89.0,89.0,79.0,79.0,79.0,79.0,79.0,79.0,80.0,80.0,71.0,83.0,80.0,2.54,0.61,0.26,4.76,28.0,15.0,1.37715,2.55612,84.18,80.91,11.75,14.58,3.55,1.805,53.639,20.03,71.33,78.83,79.0,71.0,71.181818,78.909091,0.0,0.0,4.473,29.233607,31.406375,-2.172768
+        """
 
     df = input_fn(input_data, "text/csv")
-    assert len(df.columns) == 46 and "result_match" not in df.columns
+    assert len(df.columns) == 50 and "result_match" not in df.columns
 
 
 def test_input_json_drops_target_column_if_present():
-    input_data = json.dumps({
-        "player_rating_home_player_1": 79, "player_rating_home_player_2": 79,
-        "player_rating_home_player_3": 79, "player_rating_home_player_4": 79,
-        "player_rating_home_player_5": 79, "player_rating_home_player_6": 79,
-        "player_rating_home_player_7": 81, "player_rating_home_player_8": 86,
-        "player_rating_home_player_9": 88, "player_rating_home_player_10": 85,
-        "player_rating_home_player_11": 82, "player_rating_away_player_1": 76,
-        "player_rating_away_player_2": 76, "player_rating_away_player_3": 76,
-        "player_rating_away_player_4": 76, "player_rating_away_player_5": 76,
-        "player_rating_away_player_6": 76, "player_rating_away_player_7": 74,
-        "player_rating_away_player_8": 75, "player_rating_away_player_9": 72,
-        "player_rating_away_player_10": 76, "player_rating_away_player_11": 75,
-        "ewm_home_team_goals": 1.52, "ewm_away_team_goals": 0.82,
-        "ewm_home_team_goals_conceded": 0.92, "ewm_away_team_goals_conceded": 1.92,
-        "points_home": 68, "points_away": 17,
-        "home_weighted_wins": 4.144031675155845, "away_weighted_wins": 3.887158709814261,
-        "avg_home_team_rating": 81.45, "avg_away_team_rating": 75.27,
-        "home_streak_wins": 50.07, "away_streak_wins": 3.55,
-        "ewm_shoton_home": 7.592, "ewm_shoton_away": 4.772,
-        "ewm_possession_home": 43.5, "ewm_possession_away": 52.919,
-        "avg_home_rating_attack": 83.5, "avg_away_rating_attack": 74.67,
-        "avg_away_rating_defence": 76.0, "avg_home_rating_defence": 79.0,
-        "average_rating_home": 81.45454545454545, "average_rating_away": 75.27272727272727,
-        "defensive_weakness_home": 1.1294642857142858, "defensive_weakness_away": 2.5507246376811596,
-        "result_match": 1
-    })
+    input_data = json.dumps(
+        {"player_rating_home_player_1": 89, "player_rating_home_player_2": 79, "player_rating_home_player_3": 59, "player_rating_home_player_4": 69, "player_rating_home_player_5": 69,
+         "player_rating_home_player_6": 79, "player_rating_home_player_7": 69, "player_rating_home_player_8": 79, "player_rating_home_player_9": 69, "player_rating_home_player_10": 89,
+         "player_rating_home_player_11": 89, "player_rating_away_player_1": 79, "player_rating_away_player_2": 79, "player_rating_away_player_3": 79, "player_rating_away_player_4": 79,
+         "player_rating_away_player_5": 79, "player_rating_away_player_6": 79, "player_rating_away_player_7": 80, "player_rating_away_player_8": 80, "player_rating_away_player_9": 71,
+         "player_rating_away_player_10": 83, "player_rating_away_player_11": 80, "ewm_home_team_goals": 2.54, "ewm_away_team_goals": 0.61, "ewm_home_team_goals_conceded": 0.26,
+         "ewm_away_team_goals_conceded": 4.76, "points_home": 28, "points_away": 15, "home_weighted_wins": 1.377149515625, "away_weighted_wins": 2.5561203576634663, "avg_home_team_rating": 84.18,
+         "avg_away_team_rating": 80.91, "home_streak_wins": 11.75, "away_streak_wins": 14.58, "ewm_shoton_home": 3.55, "ewm_shoton_away": 1.805, "ewm_possession_home": 53.639,
+         "ewm_possession_away": 20.03, "avg_home_rating_attack": 71.33, "avg_away_rating_attack": 78.83, "avg_away_rating_defence": 79.0, "avg_home_rating_defence": 71.0,
+         "average_rating_home": 71.18181818181819, "average_rating_away": 78.9090909090909, "num_top_players_home": 0, "num_top_players_away": 0,
+         "ewm_home_team_goals_conceded_x_ewm_shoton_home": 4.473, "attacking_strength_home": 29.233606557377048, "attacking_strength_away": 31.40637450199203,
+         "attacking_strength_diff": -2.172767944614982
+         })
 
     df = input_fn(input_data, "application/json")
-    assert len(df.columns) == 46 and "result_match" not in df.columns
+    assert len(df.columns) == 50 and "result_match" not in df.columns
 
 
 def test_input_csv_works_without_target_column():
     input_data = """
-        77,77,77,77,77,77,76,75,75,79,77,80,80,80,80,80,80,78,80,86,73,88,2.15,2.24,1.63,1.67,46,65,2.6942883775913384,1.008610065655301,76.73,80.45,42.34,27.71,5.379,7.424,50.032,45.678,76.5,80.83,80.0,77.0,76.72727272727273,80.45454545454545,2.1244075829383884,2.0757062146892653
+        89.0,79.0,59.0,69.0,69.0,79.0,69.0,79.0,69.0,89.0,89.0,79.0,79.0,79.0,79.0,79.0,79.0,80.0,80.0,71.0,83.0,80.0,2.54,0.61,0.26,4.76,28.0,15.0,1.37715,2.55612,84.18,80.91,11.75,14.58,3.55,1.805,53.639,20.03,71.33,78.83,79.0,71.0,71.181818,78.909091,0.0,0.0,4.473,29.233607,31.406375,-2.172768
         """
 
     df = input_fn(input_data, "text/csv")
-    assert len(df.columns) == 46
+    assert len(df.columns) == 50
 
 
 def test_input_json_works_without_target_column():
-    input_data = json.dumps({
-        "player_rating_home_player_1": 79, "player_rating_home_player_2": 79,
-        "player_rating_home_player_3": 79, "player_rating_home_player_4": 79,
-        "player_rating_home_player_5": 79, "player_rating_home_player_6": 79,
-        "player_rating_home_player_7": 81, "player_rating_home_player_8": 86,
-        "player_rating_home_player_9": 88, "player_rating_home_player_10": 85,
-        "player_rating_home_player_11": 82, "player_rating_away_player_1": 76,
-        "player_rating_away_player_2": 76, "player_rating_away_player_3": 76,
-        "player_rating_away_player_4": 76, "player_rating_away_player_5": 76,
-        "player_rating_away_player_6": 76, "player_rating_away_player_7": 74,
-        "player_rating_away_player_8": 75, "player_rating_away_player_9": 72,
-        "player_rating_away_player_10": 76, "player_rating_away_player_11": 75,
-        "ewm_home_team_goals": 1.52, "ewm_away_team_goals": 0.82,
-        "ewm_home_team_goals_conceded": 0.92, "ewm_away_team_goals_conceded": 1.92,
-        "points_home": 68, "points_away": 17,
-        "home_weighted_wins": 4.144031675155845, "away_weighted_wins": 3.887158709814261,
-        "avg_home_team_rating": 81.45, "avg_away_team_rating": 75.27,
-        "home_streak_wins": 50.07, "away_streak_wins": 3.55,
-        "ewm_shoton_home": 7.592, "ewm_shoton_away": 4.772,
-        "ewm_possession_home": 43.5, "ewm_possession_away": 52.919,
-        "avg_home_rating_attack": 83.5, "avg_away_rating_attack": 74.67,
-        "avg_away_rating_defence": 76.0, "avg_home_rating_defence": 79.0,
-        "average_rating_home": 81.45454545454545, "average_rating_away": 75.27272727272727,
-        "defensive_weakness_home": 1.1294642857142858, "defensive_weakness_away": 2.5507246376811596
-    })
+    input_data = json.dumps(
+        {"player_rating_home_player_1": 89, "player_rating_home_player_2": 79, "player_rating_home_player_3": 59, "player_rating_home_player_4": 69, "player_rating_home_player_5": 69,
+         "player_rating_home_player_6": 79, "player_rating_home_player_7": 69, "player_rating_home_player_8": 79, "player_rating_home_player_9": 69, "player_rating_home_player_10": 89,
+         "player_rating_home_player_11": 89, "player_rating_away_player_1": 79, "player_rating_away_player_2": 79, "player_rating_away_player_3": 79, "player_rating_away_player_4": 79,
+         "player_rating_away_player_5": 79, "player_rating_away_player_6": 79, "player_rating_away_player_7": 80, "player_rating_away_player_8": 80, "player_rating_away_player_9": 71,
+         "player_rating_away_player_10": 83, "player_rating_away_player_11": 80, "ewm_home_team_goals": 2.54, "ewm_away_team_goals": 0.61, "ewm_home_team_goals_conceded": 0.26,
+         "ewm_away_team_goals_conceded": 4.76, "points_home": 28, "points_away": 15, "home_weighted_wins": 1.377149515625, "away_weighted_wins": 2.5561203576634663, "avg_home_team_rating": 84.18,
+         "avg_away_team_rating": 80.91, "home_streak_wins": 11.75, "away_streak_wins": 14.58, "ewm_shoton_home": 3.55, "ewm_shoton_away": 1.805, "ewm_possession_home": 53.639,
+         "ewm_possession_away": 20.03, "avg_home_rating_attack": 71.33, "avg_away_rating_attack": 78.83, "avg_away_rating_defence": 79.0, "avg_home_rating_defence": 71.0,
+         "average_rating_home": 71.18181818181819, "average_rating_away": 78.9090909090909, "num_top_players_home": 0, "num_top_players_away": 0,
+         "ewm_home_team_goals_conceded_x_ewm_shoton_home": 4.473, "attacking_strength_home": 29.233606557377048, "attacking_strength_away": 31.40637450199203,
+         "attacking_strength_diff": -2.172767944614982
+         })
 
     df = input_fn(input_data, "application/json")
-    assert len(df.columns) == 46
+
+
+
+    assert len(df.columns) == 50
 
 
 def test_output_csv_raises_exception_if_prediction_is_none():
@@ -129,10 +107,10 @@ def test_output_json_raises_exception_if_prediction_is_none():
 
 def test_output_csv_returns_prediction():
     prediction = np.array([
-        [77, 77, 77, 77, 77, 77, 76, 75, 75, 79, 77, 80, 80, 80, 80, 80, 80, 78, 80, 86, 73, 88, 2.15, 2.24, 1.63, 1.67, 46, 65, 2.6942883775913384, 1.008610065655301, 76.73, 80.45, 42.34, 27.71,
-         5.379, 7.424, 50.032, 45.678, 76.5, 80.83, 80.0, 77.0, 76.72727272727273, 80.45454545454545, 2.1244075829383884, 2.0757062146892653, 1],
-        [79, 79, 79, 79, 79, 79, 81, 86, 88, 85, 82, 76, 76, 76, 76, 76, 76, 74, 75, 72, 76, 75, 1.52, 0.82, 0.92, 1.92, 68, 17, 4.144031675155845, 3.887158709814261, 81.45, 75.27, 50.07, 3.55, 7.592,
-         4.772, 43.5, 52.919, 83.5, 74.67, 76.0, 79.0, 81.45454545454545, 75.27272727272727, 1.1294642857142858, 2.5507246376811596, 2]
+        [71, 71, 71, 71, 71, 71, 72, 70, 70, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 1.377149515625, 2.5561203576634663, 71.18, 78.91, 11.75, 14.58, 3.55,
+         1.805, 53.639, 20.03, 71.33, 78.83, 79.0, 71.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 29.233606557377048, 31.40637450199203, -2.172767944614982, 0],
+        [71, 90, 71, 71, 86, 71, 72, 92, 82, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 2.377149515625, 4.5561203576634663, 71.18, 78.91, 11.75, 23.58, 3.55,
+         1.805, 45.639, 20.03, 71.33, 78.83, 79.0, 99.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 35.233606557377048, 25.40637450199203, -2.172767944614982, 1]
     ])
 
     response = output_fn(prediction, "text/csv")
@@ -142,21 +120,22 @@ def test_output_csv_returns_prediction():
 
 def test_output_json_returns_tensorflow_ready_input():
     prediction = np.array([
-        [77, 77, 77, 77, 77, 77, 76, 75, 75, 79, 77, 80, 80, 80, 80, 80, 80, 78, 80, 86, 73, 88, 2.15, 2.24, 1.63, 1.67, 46, 65, 2.6942883775913384, 1.008610065655301, 76.73, 80.45, 42.34, 27.71,
-         5.379, 7.424, 50.032, 45.678, 76.5, 80.83, 80.0, 77.0, 76.72727272727273, 80.45454545454545, 2.1244075829383884, 2.0757062146892653, 1],
-        [79, 79, 79, 79, 79, 79, 81, 86, 88, 85, 82, 76, 76, 76, 76, 76, 76, 74, 75, 72, 76, 75, 1.52, 0.82, 0.92, 1.92, 68, 17, 4.144031675155845, 3.887158709814261, 81.45, 75.27, 50.07, 3.55, 7.592,
-         4.772, 43.5, 52.919, 83.5, 74.67, 76.0, 79.0, 81.45454545454545, 75.27272727272727, 1.1294642857142858, 2.5507246376811596, 2]
+        [71, 71, 71, 71, 71, 71, 72, 70, 70, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 1.377149515625, 2.5561203576634663, 71.18, 78.91, 11.75, 14.58, 3.55,
+         1.805, 53.639, 20.03, 71.33, 78.83, 79.0, 71.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 29.233606557377048, 31.40637450199203, -2.172767944614982, 0],
+        [71, 90, 71, 71, 86, 71, 72, 92, 82, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 2.377149515625, 4.5561203576634663, 71.18, 78.91, 11.75, 23.58, 3.55,
+         1.805, 45.639, 20.03, 71.33, 78.83, 79.0, 99.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 35.233606557377048, 25.40637450199203, -2.172767944614982, 1]
     ])
 
     response = output_fn(prediction, "application/json")
 
     assert response[0] == {
         "instances": [
-            [77, 77, 77, 77, 77, 77, 76, 75, 75, 79, 77, 80, 80, 80, 80, 80, 80, 78, 80, 86, 73, 88, 2.15, 2.24, 1.63, 1.67, 46, 65, 2.6942883775913384, 1.008610065655301, 76.73, 80.45, 42.34, 27.71,
-             5.379, 7.424, 50.032, 45.678, 76.5, 80.83, 80.0, 77.0, 76.72727272727273, 80.45454545454545, 2.1244075829383884, 2.0757062146892653, 1],
-            [79, 79, 79, 79, 79, 79, 81, 86, 88, 85, 82, 76, 76, 76, 76, 76, 76, 74, 75, 72, 76, 75, 1.52, 0.82, 0.92, 1.92, 68, 17, 4.144031675155845, 3.887158709814261, 81.45, 75.27, 50.07, 3.55,
-             7.592,
-             4.772, 43.5, 52.919, 83.5, 74.67, 76.0, 79.0, 81.45454545454545, 75.27272727272727, 1.1294642857142858, 2.5507246376811596, 2]
+            [71, 71, 71, 71, 71, 71, 72, 70, 70, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 1.377149515625, 2.5561203576634663, 71.18, 78.91, 11.75, 14.58,
+             3.55,
+             1.805, 53.639, 20.03, 71.33, 78.83, 79.0, 71.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 29.233606557377048, 31.40637450199203, -2.172767944614982, 0],
+            [71, 90, 71, 71, 86, 71, 72, 92, 82, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 2.377149515625, 4.5561203576634663, 71.18, 78.91, 11.75, 23.58,
+             3.55,
+             1.805, 45.639, 20.03, 71.33, 78.83, 79.0, 99.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 35.233606557377048, 25.40637450199203, -2.172767944614982, 1]
         ]
     }
 
@@ -165,7 +144,7 @@ def test_output_json_returns_tensorflow_ready_input():
 
 def test_predict_transforms_data(directory):
     input_data = """
-            77,77,77,,77,77,,75,75,79,77,80,80,80,80,80,80,78,80,86,73,,2.15,2.24,1.63,1.67,46,65,2.6942883775913384,,76.73,80.45,42.34,27.71,5.379,7.424,50.032,45.678,76.5,80.83,80.0,77.0,,80.45454545454545,2.1244075829383884,2.0757062146892653
+            71, 71, 71, 71, 71, 71, 72, 70, 70, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 1.377149515625, 2.5561203576634663, 71.18, 78.91, 11.75, 14.58, 3.55, 1.805, 53.639, 20.03, 71.33, 78.83, 79.0, 71.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 29.233606557377048, 31.40637450199203, -2.172767944614982
             """
 
     model = model_fn(str(directory))
@@ -176,7 +155,7 @@ def test_predict_transforms_data(directory):
 
 def test_predict_returns_none_if_invalid_input(directory):
     input_data = """
-            RUTI,77,77,77,77,77,76,75,75,79,77,80,80,80,80,80,80,78,80,86,73,88,2.15,2.24,1.63,1.67,46,65,2.6942883775913384,1.008610065655301,76.73,80.45,42.34,27.71,5.379,7.424,50.032,45.678,76.5,80.83,80.0,77.0,76.72727272727273,80.45454545454545,2.1244075829383884,2.0757062146892653
+            RUTI, 71, 71, 71, 71, 71, 72, 70, 70, 71, 74, 79, 79, 79, 79, 79, 79, 80, 80, 71, 83, 80, 1.54, 1.61, 1.26, 0.76, 20, 28, 1.377149515625, 2.5561203576634663, 71.18, 78.91, 11.75, 14.58, 3.55, 1.805, 53.639, 20.03, 71.33, 78.83, 79.0, 71.0, 71.18181818181819, 78.9090909090909, 0, 0, 4.473, 29.233606557377048, 31.40637450199203, -2.172767944614982
             """
 
     model = model_fn(str(directory))

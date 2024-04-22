@@ -23,10 +23,9 @@ def model_fn(model_dir):
 
 def input_fn(input_data, content_type):
     if content_type == "application/json":
-        predictions = json.loads(input_data)["predictions"]
-        return predictions
+        return json.loads(input_data)["predictions"]
 
-    raise ValueError(f"{content_type} is not supported.!")
+    raise ValueError(f"{content_type} is not supported.")
 
 
 def predict_fn(input_data, model):

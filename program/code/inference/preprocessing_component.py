@@ -33,8 +33,11 @@ FEATURE_COLUMNS = ['player_rating_home_player_1', 'player_rating_home_player_2',
                    'ewm_shoton_away', 'ewm_possession_home', 'ewm_possession_away',
                    'avg_home_rating_attack', 'avg_away_rating_attack',
                    'avg_away_rating_defence', 'avg_home_rating_defence',
-                   'average_rating_home', 'average_rating_away', 'defensive_weakness_home',
-                   'defensive_weakness_away']
+                   'average_rating_home', 'average_rating_away', 'num_top_players_home',
+                   'num_top_players_away',
+                   'ewm_home_team_goals_conceded_x_ewm_shoton_home',
+                   'attacking_strength_home', 'attacking_strength_away',
+                   'attacking_strength_diff']
 
 
 def input_fn(input_data, content_type):
@@ -96,6 +99,7 @@ def predict_fn(input_data, model):
 
     try:
         response = model.transform(input_data)
+        print(type(response))
         return response
     except ValueError as e:
         print("Error transforming the input data", e)
