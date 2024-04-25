@@ -14,30 +14,16 @@ except ImportError:
     worker = None
 
 TARGET_COLUMN = "result_match"
-FEATURE_COLUMNS = ['player_rating_home_player_1', 'player_rating_home_player_2',
-                   'player_rating_home_player_3', 'player_rating_home_player_4',
-                   'player_rating_home_player_5', 'player_rating_home_player_6',
-                   'player_rating_home_player_7', 'player_rating_home_player_8',
-                   'player_rating_home_player_9', 'player_rating_home_player_10',
-                   'player_rating_home_player_11', 'player_rating_away_player_1',
-                   'player_rating_away_player_2', 'player_rating_away_player_3',
-                   'player_rating_away_player_4', 'player_rating_away_player_5',
-                   'player_rating_away_player_6', 'player_rating_away_player_7',
-                   'player_rating_away_player_8', 'player_rating_away_player_9',
-                   'player_rating_away_player_10', 'player_rating_away_player_11',
-                   'ewm_home_team_goals', 'ewm_away_team_goals',
-                   'ewm_home_team_goals_conceded', 'ewm_away_team_goals_conceded',
-                   'points_home', 'points_away', 'home_weighted_wins',
-                   'away_weighted_wins', 'avg_home_team_rating', 'avg_away_team_rating',
-                   'home_streak_wins', 'away_streak_wins', 'ewm_shoton_home',
-                   'ewm_shoton_away', 'ewm_possession_home', 'ewm_possession_away',
-                   'avg_home_rating_attack', 'avg_away_rating_attack',
-                   'avg_away_rating_defence', 'avg_home_rating_defence',
-                   'average_rating_home', 'average_rating_away', 'num_top_players_home',
-                   'num_top_players_away',
-                   'ewm_home_team_goals_conceded_x_ewm_shoton_home',
-                   'attacking_strength_home', 'attacking_strength_away',
-                   'attacking_strength_diff']
+
+FEATURE_COLUMNS = ['player_rating_home_player_1', 'player_rating_home_player_2', 'player_rating_home_player_3', 'player_rating_home_player_4', 'player_rating_home_player_5',
+                   'player_rating_home_player_6', 'player_rating_home_player_7', 'player_rating_home_player_8', 'player_rating_home_player_9', 'player_rating_home_player_10',
+                   'player_rating_home_player_11', 'player_rating_away_player_1', 'player_rating_away_player_2', 'player_rating_away_player_3', 'player_rating_away_player_4',
+                   'player_rating_away_player_5', 'player_rating_away_player_6', 'player_rating_away_player_7', 'player_rating_away_player_8', 'player_rating_away_player_9',
+                   'player_rating_away_player_10', 'player_rating_away_player_11', 'ewm_home_team_goals', 'ewm_away_team_goals', 'ewm_home_team_goals_conceded', 'ewm_away_team_goals_conceded',
+                   'points_home', 'points_away', 'home_weighted_wins', 'away_weighted_wins', 'avg_home_team_rating', 'avg_away_team_rating', 'home_streak_wins', 'away_streak_wins', 'ewm_shoton_home',
+                   'ewm_shoton_away', 'ewm_possession_home', 'ewm_possession_away', 'avg_home_rating_attack', 'avg_away_rating_attack', 'avg_away_rating_defence', 'avg_home_rating_defence',
+                   'average_rating_home', 'average_rating_away', 'num_top_players_home', 'num_top_players_away', 'ewm_home_team_goals_conceded_x_ewm_shoton_home', 'attacking_strength_home',
+                   'attacking_strength_away', 'attacking_strength_diff']
 
 
 def input_fn(input_data, content_type):
@@ -71,26 +57,18 @@ def input_fn(input_data, content_type):
 
 def output_fn(prediction, accept):
     """
-    Formats the prediction output to generate a response.
-
-    The default accept/content-type between containers for serial inference is JSON.
-    Since this model will preceed a XGBoost model, we want to return a JSON object
-    following XGBoost's input requirements.
+    Ensures output is in CSV format for XGBoost compatibility.
     """
-
     if prediction is None:
-        raise Exception(f"There was an error transforming the input data")
+        raise Exception("There was an error transforming the input data")
 
-    if accept == "text/csv":
-        return worker.Response(encoders.encode(prediction, accept), mimetype=accept) if worker else prediction, accept
+    if isinstance(prediction, np.ndarray):
+        buffer = StringIO()
+        np.savetxt(buffer, prediction, delimiter=",", fmt='%s')
+        csv_payload = buffer.getvalue()
+        return worker.Response(csv_payload, mimetype='text/csv') if worker else csv_payload
 
-    if accept == "application/json":
-        instances = [p for p in prediction.tolist()]
-        response = {"instances": instances}
-        return worker.Response(json.dumps(response), mimetype=accept) if worker else (response, accept)
-
-    raise Exception(f"{accept} accept type is not supported.")
-
+    raise Exception(f"Unsupported accept type: {accept}")
 
 def predict_fn(input_data, model):
     """
@@ -99,7 +77,6 @@ def predict_fn(input_data, model):
 
     try:
         response = model.transform(input_data)
-        print(type(response))
         return response
     except ValueError as e:
         print("Error transforming the input data", e)

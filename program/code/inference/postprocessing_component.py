@@ -2,6 +2,8 @@ import os
 import numpy as np
 import json
 import joblib
+from io import StringIO
+import pandas as pd
 
 try:
     from sagemaker_containers.beta.framework import encoders, worker
@@ -23,35 +25,39 @@ def model_fn(model_dir):
 
 def input_fn(input_data, content_type):
     if content_type == "application/json":
-        return json.loads(input_data)["predictions"]
+        data = json.loads(input_data)
+        predictions = data.get("predictions")
+        if predictions is None:
+            raise ValueError("JSON input does not contain 'predictions' key.")
+        return predictions
 
-    raise ValueError(f"{content_type} is not supported.")
+    elif "text/csv" in content_type:
+        if isinstance(input_data, bytes):
+            input_data = input_data.decode('utf-8')
+
+        data = StringIO(input_data)
+        predictions = pd.read_csv(data, header=None)
+        return predictions.values
+
+    else:
+        raise ValueError(f"Unsupported content type: {content_type}")
 
 
 def predict_fn(input_data, model):
     """
     Transforms the prediction into its corresponding category.
     """
-    predictions = np.argmax(input_data, axis=-1)
-    confidence = np.max(input_data, axis=-1)
+    predictions = [1 if x > 0.5 else 0 for x in input_data]
+
     return [
         (model[prediction], confidence)
-        for confidence, prediction in zip(confidence, predictions)
+        for prediction, confidence in zip(predictions, input_data)
     ]
 
 
 def output_fn(prediction, accept):
-    if accept == "text/csv":
-        return (
-            worker.Response(encoders.encode(prediction, accept), mimetype=accept)
-            if worker
-            else (prediction, accept)
-        )
-
-    if accept == "application/json":
-        response = []
-        for p, c in prediction:
-            response.append({"prediction": p, "confidence": c})
+    if accept == "text/csv" or accept == "application/json":
+        response = [{'prediction': pred, 'confidence': conf.item()} for pred, conf in prediction]
 
         # If there's only one prediction, we'll return it
         # as a single object.
