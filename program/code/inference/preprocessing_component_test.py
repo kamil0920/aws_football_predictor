@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import pytest
 
 from preprocessing_component import input_fn, predict_fn, output_fn, model_fn
-from pythonProject.program.code import preprocessor
+from program.code import preprocessor
 
 load_dotenv()
 

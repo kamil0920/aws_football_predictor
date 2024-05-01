@@ -23,14 +23,14 @@ def test_predict_returns_prediction_as_first_column():
 
 def test_output_does_not_return_array_if_single_prediction():
     prediction = [("home_win", np.array(0.6))]
-    response, _ = output_fn(prediction, "text/csv")
+    response, _ = output_fn(prediction, "application/json")
 
     assert response["prediction"] == "home_win"
 
 
 def test_output_returns_array_if_multiple_predictions():
     prediction = [("home_win", np.array(0.6)), ("home_not_win", np.array(0.8))]
-    response, _ = output_fn(prediction, "text/csv")
+    response, _ = output_fn(prediction, "application/json")
 
     assert len(response) == 2
     assert response[0]["prediction"] == "home_win"

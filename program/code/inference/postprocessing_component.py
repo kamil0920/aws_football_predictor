@@ -55,9 +55,23 @@ def predict_fn(input_data, model):
     ]
 
 
+def parse_confidence(lst, func):
+    return [(x[0], func(x[1])) for x in lst]
+
+
 def output_fn(prediction, accept):
-    if accept == "text/csv" or accept == "application/json":
-        response = [{'prediction': pred, 'confidence': conf.item()} for pred, conf in prediction]
+    if accept == "text/csv":
+        prediction = parse_confidence(prediction, lambda x: x.item())
+        return (
+            worker.Response(encoders.encode(prediction, accept), mimetype=accept)
+            if worker
+            else (prediction, accept)
+        )
+
+    if accept == "application/json":
+        response = []
+        for p, c in prediction:
+            response.append({"prediction": p, "confidence": c.item()})
 
         # If there's only one prediction, we'll return it
         # as a single object.

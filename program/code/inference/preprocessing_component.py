@@ -38,7 +38,7 @@ def input_fn(input_data, content_type):
         df = pd.read_csv(StringIO(input_data), header=None, skipinitialspace=True)
 
         if len(df.columns) == len(FEATURE_COLUMNS) + 1:
-            df = df.drop(df.columns[0], axis=1)
+            df = df.drop(df.columns[-1], axis=1)
 
         df.columns = FEATURE_COLUMNS
         return df
