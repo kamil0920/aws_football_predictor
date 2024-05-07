@@ -53,14 +53,11 @@ def lambda_handler(event, context):
             {
                 "ModelName": model_name,
                 "InstanceType": "ml.c5.xlarge",
-                # "InstanceType": "ml.m5.xlarge",
                 "InitialVariantWeight": 1,
                 "InitialInstanceCount": 1,
                 "VariantName": "AllTraffic",
             }
         ],
-        # We can enable Data Capture to record the inputs and outputs
-        # of the endpoint to use them later for monitoring the model.
         DataCaptureConfig={
             "EnableCapture": True,
             "InitialSamplingPercentage": data_capture_percentage,
@@ -79,14 +76,11 @@ def lambda_handler(event, context):
     response = sagemaker.list_endpoints(NameContains=endpoint_name, MaxResults=1)
 
     if len(response["Endpoints"]) == 0:
-        # If the endpoint doesn't exist, let's create it.
         sagemaker.create_endpoint(
             EndpointName=endpoint_name,
             EndpointConfigName=endpoint_config_name,
         )
     else:
-        # If the endpoint already exists, let's update it with the
-        # new configuration.
         sagemaker.update_endpoint(
             EndpointName=endpoint_name,
             EndpointConfigName=endpoint_config_name,
