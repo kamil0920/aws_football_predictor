@@ -41,10 +41,11 @@ def input_fn(input_data, content_type):
             df = df.drop(df.columns[-1], axis=1)
 
         df.columns = FEATURE_COLUMNS
+
         return df
 
     if content_type == "application/json":
-        df = pd.DataFrame([json.loads(input_data)])
+        df = pd.DataFrame(json.loads(input_data))
 
         if "result_match" in df.columns:
             df = df.drop("result_match", axis=1)
