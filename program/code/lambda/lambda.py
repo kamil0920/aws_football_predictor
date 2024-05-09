@@ -36,27 +36,64 @@ def lambda_handler(event, context):
     data_capture_percentage = int(os.environ["DATA_CAPTURE_PERCENTAGE"])
     data_capture_destination = os.environ["DATA_CAPTURE_DESTINATION"]
     role = os.environ["ROLE"]
+    pacakge_group = os.environ["MODEL_PACKAGE_GROUP"]
 
     timestamp = time.strftime("%m%d%H%M%S", time.localtime())
     model_name = f"{endpoint_name}-model-{timestamp}"
     endpoint_config_name = f"{endpoint_name}-config-{timestamp}"
 
+    response = sagemaker.list_model_packages(
+        ModelPackageGroupName=pacakge_group,
+        ModelApprovalStatus="Approved",
+        SortBy="CreationTime",
+        MaxResults=2,
+    )
+
+    if response["ModelPackageSummaryList"]:
+        production_package = response["ModelPackageSummaryList"][1]["ModelPackageArn"]
+        shadow_package = response["ModelPackageSummaryList"][0]["ModelPackageArn"]
+    else:
+        production_package = None
+        shadow_package = None
+
+    print(f"Production package: {production_package}")
+    print(f"Shadow package: {shadow_package}")
+
+    production_model_name = f"{endpoint_name}-production-{timestamp}"
+
     sagemaker.create_model(
-        ModelName=model_name,
+        ModelName=production_model_name,
         ExecutionRoleArn=role,
-        Containers=[{"ModelPackageName": model_package_arn}],
+        PrimaryContainer={"ModelPackageName": production_package}
+    )
+
+    shadow_model_name = f"{endpoint_name}-shadow-{timestamp}"
+
+    sagemaker.create_model(
+        ModelName=shadow_model_name,
+        ExecutionRoleArn=role,
+        PrimaryContainer={"ModelPackageName": shadow_package}
     )
 
     sagemaker.create_endpoint_config(
         EndpointConfigName=endpoint_config_name,
         ProductionVariants=[
             {
-                "ModelName": model_name,
-                "InstanceType": "ml.c5.xlarge",
+                "ModelName": production_model_name,
+                "InstanceType": "ml.c5.4xlarge",
                 "InitialVariantWeight": 1,
                 "InitialInstanceCount": 1,
                 "VariantName": "AllTraffic",
             }
+        ],
+        ShadowProductionVariants=[
+            {
+                "ModelName": shadow_model_name,
+                "InstanceType": "ml.c5.4xlarge",
+                "InitialVariantWeight": 1,
+                "InitialInstanceCount": 1,
+                "VariantName": "ShadowTraffic",
+            },
         ],
         DataCaptureConfig={
             "EnableCapture": True,
