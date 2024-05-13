@@ -1,8 +1,7 @@
-# | filename: requirements.txt
-# | code-line-numbers: true
 
 sagemaker-training
 xgboost
 pandas
 numpy
 scikit-learn
+        

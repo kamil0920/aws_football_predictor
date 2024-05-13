@@ -47,6 +47,7 @@ def train(model_directory, train_path, validation_path, hyperparameters, early_s
     # Save the model in JSON format
     model_filepath = model_directory / "saved_model.json"
     model.save_model(str(model_filepath))
+    print('Saving model to {}'.format(str(model_filepath)))
 
 
 if __name__ == "__main__":
