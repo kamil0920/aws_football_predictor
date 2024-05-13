@@ -11,8 +11,8 @@ from xgboost import XGBClassifier
 
 
 def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperparameters):
-    model = XGBClassifier(**hyperparameters, random_state=42, scale_pos_weight=2, early_stopping_rounds=early_stopping_rounds)
-    model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_val, y_val)], eval_metric='logloss', verbose=1)
+    model = XGBClassifier(**hyperparameters, random_state=42, scale_pos_weight=2, early_stopping_rounds=early_stopping_rounds, eval_metric='logloss')
+    model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_val, y_val)], verbose=1)
 
     y_pred = model.predict(X_val)
     f1 = f1_score(y_val, y_pred)
@@ -42,11 +42,10 @@ def train(model_directory, train_path, validation_path, hyperparameters, early_s
     print("F1 score: {:.2f}".format(f1))
 
     model_directory = Path(model_directory)
-
     model_directory.mkdir(parents=True, exist_ok=True)
 
-    model_filepath = model_directory / "saved_model.xgb"
-
+    # Save the model in JSON format
+    model_filepath = model_directory / "saved_model.json"
     model.save_model(str(model_filepath))
 
 
