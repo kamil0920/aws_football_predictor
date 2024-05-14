@@ -20,19 +20,17 @@ class SageMakerContainerBuilder:
         )
 
     def create_requirements(self):
-        requirements = """
-sagemaker-training
+        requirements = """sagemaker-training
 xgboost
 pandas
 numpy
-scikit-learn
-        """
+scikit-learn"""
+
         with open(self.training_path / 'requirements.txt', 'w') as f:
             f.write(requirements)
 
     def create_dockerfile(self):
-        dockerfile_contents = """
-FROM python:3.10-slim
+        dockerfile_contents = """FROM python:3.10-slim
 RUN apt-get -y update && apt-get install -y --no-install-recommends \
     python3 \
     build-essential \
@@ -43,8 +41,8 @@ RUN pip install --user --upgrade pip
 RUN pip3 install -r requirements.txt
 
 COPY train.py /opt/ml/code/train.py
-ENV SAGEMAKER_PROGRAM train.py
-                             """
+ENV SAGEMAKER_PROGRAM train.py"""
+
         with open(self.training_path / 'Dockerfile', 'w') as f:
             f.write(dockerfile_contents)
 

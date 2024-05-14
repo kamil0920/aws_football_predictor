@@ -28,7 +28,8 @@ def directory():
         model_directory=directory / "model",
         train_path=directory / "train",
         validation_path=directory / "validation",
-        early_stopping_rounds=50
+        early_stopping_rounds=50,
+        hyperparameters={}
     )
 
     yield directory
@@ -38,7 +39,7 @@ def directory():
 
 def test_train_saves_a_folder_with_model_assets(directory):
     output = os.listdir(directory / "model")
-    assert "001" in output
+    assert "saved_model.json" in output
 
-    assets = os.listdir(directory / "model" / "001")
-    assert "saved_model.bst" in assets
+    assets = os.listdir(directory / "model")
+    assert "saved_model.json" in assets
