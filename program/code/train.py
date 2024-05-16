@@ -1,11 +1,11 @@
 import os
 import argparse
+import tarfile
 
-import numpy as np
 import pandas as pd
 
 from pathlib import Path
-from sklearn.metrics import f1_score, log_loss
+from sklearn.metrics import f1_score
 
 from xgboost import XGBClassifier
 
@@ -20,7 +20,7 @@ def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperp
     return f1, model
 
 
-def train(model_directory, train_path, validation_path, hyperparameters, early_stopping_rounds=25):
+def train(model_directory, train_path, validation_path, pipeline_path, hyperparameters, early_stopping_rounds=25):
     train_files = [file for file in Path(train_path).glob("*.csv")]
     validation_files = [file for file in Path(validation_path).glob("*.csv")]
 
@@ -44,15 +44,17 @@ def train(model_directory, train_path, validation_path, hyperparameters, early_s
     model_directory = Path(model_directory)
     model_directory.mkdir(parents=True, exist_ok=True)
 
-    # Save the model in JSON format
-    model_filepath = model_directory / "saved_model.json"
+    model_filepath = model_directory / "saved_model.xgb"
     model.save_model(str(model_filepath))
     print('Saving model to {}'.format(str(model_filepath)))
 
+    print(f'pipeline path: {pipeline_path}')
+
+    with tarfile.open(Path(pipeline_path) / "model.tar.gz", "r:gz") as tar:
+        tar.extractall(model_directory)
+
 
 if __name__ == "__main__":
-    # Any hyperparameters provided by the training job are passed to
-    # the entry point as script arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument("--early_stopping_rounds", type=int, default=25)
 
@@ -86,6 +88,7 @@ if __name__ == "__main__":
         # Training Step.
         train_path=os.environ["SM_CHANNEL_TRAIN"],
         validation_path=os.environ["SM_CHANNEL_VALIDATION"],
+        pipeline_path=os.environ["SM_CHANNEL_PIPELINE"],
         early_stopping_rounds=args.early_stopping_rounds,
         hyperparameters=params
 

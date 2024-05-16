@@ -1,107 +1,112 @@
 import os
 import json
+from io import StringIO
+
 import requests
 import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import xgboost as xgb
+
+try:
+    from sagemaker_containers.beta.framework import encoders, worker
+except ImportError:
+    # We don't have access to the `worker` instance when testing locally.
+    # We'll set it to None so we can change the way functions create
+    # a response.
+    worker = None
+
+FEATURE_COLUMNS = ['player_rating_home_player_1', 'player_rating_home_player_2', 'player_rating_home_player_3',
+                   'player_rating_home_player_4', 'player_rating_home_player_5',
+                   'player_rating_home_player_6', 'player_rating_home_player_7', 'player_rating_home_player_8',
+                   'player_rating_home_player_9', 'player_rating_home_player_10',
+                   'player_rating_home_player_11', 'player_rating_away_player_1', 'player_rating_away_player_2',
+                   'player_rating_away_player_3', 'player_rating_away_player_4',
+                   'player_rating_away_player_5', 'player_rating_away_player_6', 'player_rating_away_player_7',
+                   'player_rating_away_player_8', 'player_rating_away_player_9',
+                   'player_rating_away_player_10', 'player_rating_away_player_11', 'ewm_home_team_goals',
+                   'ewm_away_team_goals', 'ewm_home_team_goals_conceded', 'ewm_away_team_goals_conceded',
+                   'points_home', 'points_away', 'home_weighted_wins', 'away_weighted_wins', 'avg_home_team_rating',
+                   'avg_away_team_rating', 'home_streak_wins', 'away_streak_wins', 'ewm_shoton_home',
+                   'ewm_shoton_away', 'ewm_possession_home', 'ewm_possession_away', 'avg_home_rating_attack',
+                   'avg_away_rating_attack', 'avg_away_rating_defence', 'avg_home_rating_defence',
+                   'average_rating_home', 'average_rating_away', 'num_top_players_home', 'num_top_players_away',
+                   'ewm_home_team_goals_conceded_x_ewm_shoton_home', 'attacking_strength_home',
+                   'attacking_strength_away', 'attacking_strength_diff']
 
 
-def handler(data, context, directory=Path("/opt/ml/model")):
-    """
-    This is the entrypoint that will be called by SageMaker
-    when the endpoint receives a request.
-    """
-    print("Handling endpoint request")
-
-    processed_input = _process_input(data, context, directory)
-    output = _predict(processed_input, context, directory) if processed_input else None
-    return _process_output(output, context, directory)
+def model_fn(model_dir):
+    print(f'Loading model_fn from {model_dir}')
+    model_file = os.path.join(model_dir, "saved_model.xgb")
+    model = xgb.XGBClassifier()
+    model.load_model(model_file)
+    return model
 
 
-def _process_input(data, context, directory):
-    print("Processing input data...")
+def parse_confidence(lst, func):
+    return [(x[0], func(x[1])) for x in lst]
 
-    if context is None:
-        # The context will be None when we are testing the code
-        # directly from a notebook. In that case, we can use the
-        # data directly.
-        endpoint_input = data
-    elif context.request_content_type in (
-            "application/json",
-            "application/octet-stream",
-    ):
-        # When the endpoint is running, we will receive a context
-        # object. We need to parse the input and turn it into
-        # JSON in that case.
-        endpoint_input = data.read().decode("utf-8")
-    else:
-        raise ValueError(
-            f"Unsupported content type: {context.request_content_type or 'unknown'}"
+
+def input_fn(request_body, request_content_type):
+    print(f'Loading input_fn with content type: {request_content_type}')
+
+    df = None
+
+    if request_content_type == "text/csv":
+        df = pd.read_csv(StringIO(request_body), header=None, skipinitialspace=True)
+
+        if len(df.columns) == len(FEATURE_COLUMNS) + 1:
+            df = df.drop(df.columns[-1], axis=1)
+
+        df.columns = FEATURE_COLUMNS
+
+        return df
+
+    if request_content_type == "application/json":
+        df = pd.DataFrame(json.loads(request_body))
+
+        if "result_match" in df.columns:
+            df = df.drop("result_match", axis=1)
+
+        return df
+
+    features_model_path = Path("/opt/ml/model")
+    features_pipeline = joblib.load(features_model_path / "features.joblib")
+    transformed_data = features_pipeline.transform(df)
+
+    return transformed_data
+
+
+def predict_fn(input_data, model):
+    print(f'Starting predict_fn with input data: {input_data}')
+    predictions = model.predict_proba(input_data)
+    return predictions
+
+
+def output_fn(prediction, response_content_type):
+    print(f'Starting predict_fn prediction: {prediction}')
+
+    if response_content_type == "text/csv":
+        prediction = parse_confidence(prediction, lambda x: x.item())
+        return (
+            worker.Response(encoders.encode(prediction, response_content_type), mimetype=response_content_type)
+            if worker
+            else (prediction, response_content_type)
         )
 
-    # Let's now transform the input data using the features pipeline.
-    try:
-        endpoint_input = json.loads(endpoint_input)
-        df = pd.json_normalize(endpoint_input)
-        features_pipeline = joblib.load(directory / "features.joblib")
-        result = features_pipeline.transform(df)
-    except Exception as e:
-        print(f"There was an error processing the input data. {e}")
-        return None
+    if response_content_type == "application/json":
+        response = []
+        for p, c in prediction:
+            response.append({"prediction": p, "confidence": c.item()})
 
-    return result[0].tolist()
+        if len(response) == 1:
+            response = response[0]
 
+        return (
+            worker.Response(json.dumps(response), mimetype=response_content_type)
+            if worker
+            else (response, response_content_type)
+        )
 
-def _predict(instance, context, directory):
-    print("Sending input data to model to make a prediction...")
-
-    if context is None:
-        # The context will be None when we are testing the code
-        # directly from a notebook. In that case, we want to load the
-        # model we trained and make a prediction using it.
-        import xgboost
-
-        model = xgboost.XGBClassifier()
-        model.load_model(Path(directory) / 'saved_model.json')
-        predictions = model.predict_proba(np.array([instance]))
-        result = {"predictions": predictions.tolist()}
-    else:
-        # When the endpoint is running, we will receive a context
-        # object. In that case we need to send the instance to the
-        # model to get a prediction back.
-        model_input = json.dumps({"instances": [instance]})
-        response = requests.post(context.rest_uri, data=model_input)
-
-        if response.status_code != 200:
-            raise ValueError(response.content.decode("utf-8"))
-
-        result = json.loads(response.content)
-
-    print(f"Response: {result}")
-    return result
-
-
-def _process_output(output, context, directory):
-    print("Processing prediction received from the model...")
-
-    if output:
-        prediction = np.argmax(output["predictions"][0])
-        confidence = output["predictions"][0][prediction]
-
-        target_pipeline = joblib.load(directory / "target.joblib")
-        classes = target_pipeline.named_transformers_["result_match"].categories_[0]
-
-        result = {
-            "prediction": classes[prediction],
-            "confidence": confidence,
-        }
-    else:
-        result = {"prediction": None}
-
-    print(result)
-
-    response_content_type = (
-        "application/json" if context is None else context.accept_header
-    )
-    return json.dumps(result), response_content_type
+    raise Exception(f"{response_content_type} accept type is not supported.")

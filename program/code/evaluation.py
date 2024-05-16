@@ -1,4 +1,5 @@
 import json
+import pickle
 import tarfile
 import pandas as pd
 
@@ -12,8 +13,6 @@ def evaluate(model_path, test_path, output_path):
     y_test = X_test[X_test.columns[-1]]
     X_test.drop(X_test.columns[-1], axis=1, inplace=True)
 
-    # Let's now extract the model package so we can load
-    # it in memory.
     with tarfile.open(Path(model_path) / "model.tar.gz") as tar:
         tar.extractall(path=Path(model_path))
 
