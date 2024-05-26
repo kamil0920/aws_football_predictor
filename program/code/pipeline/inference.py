@@ -37,7 +37,6 @@ FEATURE_COLUMNS = ['player_rating_home_player_1', 'player_rating_home_player_2',
 
 
 def model_fn(model_dir):
-    print(f'Loading model_fn from {model_dir}')
     model_file = os.path.join(model_dir, "saved_model.xgb")
     model = xgb.XGBClassifier()
     model.load_model(model_file)
@@ -49,8 +48,6 @@ def parse_confidence(lst, func):
 
 
 def input_fn(request_body, request_content_type):
-    print(f'Loading input_fn with content type: {request_content_type}')
-
     df = None
 
     if request_content_type == "text/csv":
@@ -79,14 +76,11 @@ def input_fn(request_body, request_content_type):
 
 
 def predict_fn(input_data, model):
-    print(f'Starting predict_fn with input data: {input_data}')
     predictions = model.predict_proba(input_data)
     return predictions
 
 
 def output_fn(prediction, response_content_type):
-    print(f'Starting predict_fn prediction: {prediction}')
-
     if response_content_type == "text/csv":
         prediction = parse_confidence(prediction, lambda x: x.item())
         return (

@@ -69,6 +69,11 @@ def _read_data_from_input_csv_files(base_directory):
     raw_data = [pd.read_csv(file) for file in files]
     df = pd.concat(raw_data, axis=1)
 
+    if 'result_match' in df.columns:
+        columns = [col for col in df.columns if col != 'result_match']
+        columns.append('result_match')
+        df = df[columns]
+
     # Shuffle the data
     return df.sample(frac=1, random_state=42)
 
