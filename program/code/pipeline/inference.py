@@ -7,6 +7,8 @@ import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
+
+import sklearn
 import xgboost as xgb
 
 try:
@@ -37,7 +39,7 @@ FEATURE_COLUMNS = ['player_rating_home_player_1', 'player_rating_home_player_2',
 
 
 def model_fn(model_dir):
-    model_file = os.path.join(model_dir, "saved_model.xgb")
+    model_file = os.path.join(Path(model_dir), "saved_model.xgb")
     model = xgb.XGBClassifier()
     model.load_model(model_file)
     return model
@@ -58,21 +60,32 @@ def input_fn(request_body, request_content_type):
 
         df.columns = FEATURE_COLUMNS
 
-        return df
-
     if request_content_type == "application/json":
-        df = pd.DataFrame(json.loads(request_body))
+        df = pd.DataFrame([json.loads(request_body)])
 
         if "result_match" in df.columns:
             df = df.drop("result_match", axis=1)
 
-        return df
-
-    features_model_path = Path("/opt/ml/model")
-    features_pipeline = joblib.load(features_model_path / "features.joblib")
+    model_path = os.getenv("MODEL_PATH", "/opt/ml/model")
+    features_pipeline = joblib.load(Path(model_path) / "features.joblib")
     transformed_data = features_pipeline.transform(df)
 
     return transformed_data
+
+
+def list_files_and_folders(directory):
+    try:
+        entries = os.listdir(directory)
+        for entry in entries:
+            full_path = os.path.join(directory, entry)
+            if os.path.isdir(full_path):
+                print(f"Directory: {entry}")
+            else:
+                print(f"File: {entry}")
+    except FileNotFoundError:
+        print(f"The directory {directory} does not exist.")
+    except PermissionError:
+        print(f"Permission denied to access the directory {directory}.")
 
 
 def predict_fn(input_data, model):
@@ -90,17 +103,22 @@ def output_fn(prediction, response_content_type):
         )
 
     if response_content_type == "application/json":
-        response = []
-        for p, c in prediction:
-            response.append({"prediction": p, "confidence": c.item()})
+        prediction_index = np.argmax(prediction)
+        confidence = prediction.max()
 
-        if len(response) == 1:
-            response = response[0]
+        model_path = os.getenv("MODEL_PATH", "/opt/ml/model")
+        target_pipeline = joblib.load(Path(model_path) / "target.joblib")
+        classes = target_pipeline.named_transformers_["result_match"].categories_[0]
+
+        result = {
+            "prediction": classes[prediction_index],
+            "confidence": confidence,
+        }
 
         return (
-            worker.Response(json.dumps(response), mimetype=response_content_type)
+            worker.Response(json.dumps(result), mimetype=response_content_type)
             if worker
-            else (response, response_content_type)
+            else (result, response_content_type)
         )
 
     raise Exception(f"{response_content_type} accept type is not supported.")

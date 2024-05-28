@@ -5,6 +5,8 @@ import tarfile
 import pandas as pd
 
 from pathlib import Path
+
+import sklearn
 from sklearn.metrics import f1_score
 
 from xgboost import XGBClassifier
@@ -38,6 +40,7 @@ def train(model_directory, train_path, validation_path, pipeline_path, hyperpara
     X_validation.drop(X_validation.columns[-1], axis=1, inplace=True)
 
     f1, model = evaluate_model(X_train, X_validation, y_train, y_validation, early_stopping_rounds, hyperparameters)
+    print(f"Scikit-learn version: {sklearn.__version__}")
 
     print("F1 score: {:.2f}".format(f1))
 

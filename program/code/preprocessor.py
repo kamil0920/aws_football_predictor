@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 
 from pathlib import Path
+
+import sklearn
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import make_pipeline
@@ -17,6 +19,8 @@ def preprocess(base_directory):
     """
     This function loads the supplied data, splits it and transforms it.
     """
+
+    print(f"Scikit-learn version: {sklearn.__version__}")
 
     df = _read_data_from_input_csv_files(base_directory)
 
