@@ -40,8 +40,19 @@ FEATURE_COLUMNS = ['player_rating_home_player_1', 'player_rating_home_player_2',
 
 def model_fn(model_dir):
     model_file = os.path.join(Path(model_dir), "saved_model.xgb")
+
+    if not os.path.exists(model_file):
+        raise FileNotFoundError(f"Model file not found: {model_file}")
+
     model = xgb.XGBClassifier()
-    model.load_model(model_file)
+    print("XGBClassifier initialized.")
+
+    try:
+        model.load_model(model_file)
+        print("Model loaded successfully.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load model: {e}")
+
     return model
 
 
@@ -61,64 +72,82 @@ def input_fn(request_body, request_content_type):
         df.columns = FEATURE_COLUMNS
 
     if request_content_type == "application/json":
-        df = pd.DataFrame([json.loads(request_body)])
+        df = pd.json_normalize(json.loads(request_body))
 
         if "result_match" in df.columns:
             df = df.drop("result_match", axis=1)
 
-    model_path = os.getenv("MODEL_PATH", "/opt/ml/model")
-    features_pipeline = joblib.load(Path(model_path) / "features.joblib")
-    transformed_data = features_pipeline.transform(df)
+    features_pipeline = _get_feature_pipeline()
 
+    try:
+        transformed_data = features_pipeline.transform(df)
+        print("Data transformation successful.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to transform data: {e}")
+
+    print(f"Transformed data: {transformed_data}.")
     return transformed_data
 
 
-def list_files_and_folders(directory):
+def _get_feature_pipeline():
+    model_path = os.getenv("MODEL_PATH", "/opt/ml/model")
+    features_pipeline_path = Path(model_path) / "features.joblib"
     try:
-        entries = os.listdir(directory)
-        for entry in entries:
-            full_path = os.path.join(directory, entry)
-            if os.path.isdir(full_path):
-                print(f"Directory: {entry}")
-            else:
-                print(f"File: {entry}")
-    except FileNotFoundError:
-        print(f"The directory {directory} does not exist.")
-    except PermissionError:
-        print(f"Permission denied to access the directory {directory}.")
+        features_pipeline = joblib.load(features_pipeline_path)
+        print("Features pipeline loaded successfully.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load features pipeline: {e}")
+    return features_pipeline
 
 
 def predict_fn(input_data, model):
-    predictions = model.predict_proba(input_data)
+    print(f"Input data type: {type(input_data)}")
+    if hasattr(input_data, 'shape'):
+        print(f"Input data shape: {input_data.shape}")
+
+    try:
+        predictions = model.predict_proba(input_data)
+    except Exception as e:
+        raise RuntimeError(f"Failed to make predictions: {e}")
+
+    print(f"Predictions:: {predictions}")
+
     return predictions
 
 
 def output_fn(prediction, response_content_type):
+    classes = _get_classes()
+
     if response_content_type == "text/csv":
-        prediction = parse_confidence(prediction, lambda x: x.item())
-        return (
-            worker.Response(encoders.encode(prediction, response_content_type), mimetype=response_content_type)
-            if worker
-            else (prediction, response_content_type)
-        )
+        print("Processing CSV response")
+        predictions = [(classes[np.argmax(x)], x[np.argmax(x)]) for x in prediction]
+
+        result = worker.Response(encoders.encode(predictions, response_content_type), mimetype=response_content_type) if worker else (predictions, response_content_type)
+        return result
 
     if response_content_type == "application/json":
-        prediction_index = np.argmax(prediction)
-        confidence = prediction.max()
-
-        model_path = os.getenv("MODEL_PATH", "/opt/ml/model")
-        target_pipeline = joblib.load(Path(model_path) / "target.joblib")
-        classes = target_pipeline.named_transformers_["result_match"].categories_[0]
-
-        result = {
-            "prediction": classes[prediction_index],
-            "confidence": confidence,
-        }
+        print("Processing JSON response")
+        predictions = [{'prediction': classes[np.argmax(x)], 'confidence': float(x[np.argmax(x)])} for x in prediction]
+        result = json.dumps(predictions)
 
         return (
-            worker.Response(json.dumps(result), mimetype=response_content_type)
+            worker.Response(result, mimetype=response_content_type)
             if worker
             else (result, response_content_type)
         )
 
     raise Exception(f"{response_content_type} accept type is not supported.")
+
+
+def _get_classes():
+    model_path = os.getenv("MODEL_PATH", "/opt/ml/model")
+    target_pipeline_path = Path(model_path) / "target.joblib"
+    if not target_pipeline_path.exists():
+        raise FileNotFoundError(f"Target pipeline file not found: {target_pipeline_path}")
+    try:
+        target_pipeline = joblib.load(target_pipeline_path)
+        print("Target pipeline loaded successfully.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load target pipeline: {e}")
+    classes = target_pipeline.named_transformers_["result_match"].categories_[0]
+    return classes
