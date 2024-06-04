@@ -1,5 +1,6 @@
 import os
 import argparse
+import tarfile
 
 import numpy as np
 import pandas as pd
@@ -20,7 +21,7 @@ def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperp
     return f1, model
 
 
-def train(model_directory, train_path, validation_path, hyperparameters, early_stopping_rounds=25):
+def train(model_directory, train_path, validation_path, hyperparameters, pipeline_path, early_stopping_rounds=25):
     train_files = [file for file in Path(train_path).glob("*.csv")]
     validation_files = [file for file in Path(validation_path).glob("*.csv")]
 
@@ -49,6 +50,9 @@ def train(model_directory, train_path, validation_path, hyperparameters, early_s
     model.save_model(str(model_filepath))
     print('Saving model to {}'.format(str(model_filepath)))
 
+    with tarfile.open(Path(pipeline_path) / "model.tar.gz", "r:gz") as tar:
+        tar.extractall(model_directory)
+
 
 if __name__ == "__main__":
     # Any hyperparameters provided by the training job are passed to
@@ -75,7 +79,6 @@ if __name__ == "__main__":
         "reg_lambda": args.lambda_,
         "reg_alpha": args.alpha,
     }
-
     train(
         # This is the location where we need to save our model. SageMaker will
         # create a model.tar.gz file with anything inside this directory when
@@ -86,7 +89,7 @@ if __name__ == "__main__":
         # Training Step.
         train_path=os.environ["SM_CHANNEL_TRAIN"],
         validation_path=os.environ["SM_CHANNEL_VALIDATION"],
+        pipeline_path=os.environ["SM_CHANNEL_PIPELINE"],
         early_stopping_rounds=args.early_stopping_rounds,
         hyperparameters=params
-
     )
