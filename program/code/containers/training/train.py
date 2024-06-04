@@ -45,7 +45,7 @@ def train(model_directory, train_path, validation_path, hyperparameters, early_s
     model_directory.mkdir(parents=True, exist_ok=True)
 
     # Save the model in JSON format
-    model_filepath = model_directory / "saved_model.json"
+    model_filepath = model_directory / "saved_model.xgb"
     model.save_model(str(model_filepath))
     print('Saving model to {}'.format(str(model_filepath)))
 

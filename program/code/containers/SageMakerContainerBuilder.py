@@ -3,6 +3,8 @@ import shutil
 import subprocess
 from pathlib import Path
 import boto3
+import platform
+import os
 
 
 class SageMakerContainerBuilder:
@@ -14,10 +16,6 @@ class SageMakerContainerBuilder:
 
     def setup_directories(self):
         self.training_path.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(
-            self.code_folder / "train.py",
-            self.training_path / "train.py",
-        )
 
     def create_requirements(self):
         requirements = """
@@ -49,31 +47,32 @@ ENV SAGEMAKER_PROGRAM train.py
             f.write(dockerfile_contents)
 
     def build_image(self):
-        build_command = f"docker build --platform='linux/amd64' -t {self.image_name} {self.training_path}" if not self.local_mode else f"docker build -t {self.image_name} {self.training_path}"
+        platform_arg = "--platform='linux/amd64'" if platform.system() != "Windows" else ""
+        build_command = f"docker build {platform_arg} -t {self.image_name} {self.training_path}" if not self.local_mode else f"docker build -t {self.image_name} {self.training_path}"
         subprocess.run(build_command, shell=True, check=True)
 
     def push_to_ecr(self):
         if not self.local_mode:
             client = boto3.client("sts")
-            account_id = client.get_caller_identity().get("Account")
-            region = boto3.session.Session().region_name
+            account_id = os.environ["ACCOUNT_ID"]
+            region = os.environ["AWS_REGION"]
+            print(f'account_id: {account_id}')
+            print(f'region: {region}')
             uri_suffix = "amazonaws.com.cn" if region in ["cn-north-1", "cn-northwest-1"] else "amazonaws.com"
             repository_uri = f"{account_id}.dkr.ecr.{region}.{uri_suffix}/{self.image_name}:latest"
 
-            # Create ECR repository if it does not exist
             ecr_client = boto3.client('ecr')
             try:
                 ecr_client.describe_repositories(repositoryNames=[self.image_name])
             except ecr_client.exceptions.RepositoryNotFoundException:
                 ecr_client.create_repository(repositoryName=self.image_name)
 
-            # Login to ECR
             login_password = subprocess.getoutput(f"aws ecr get-login-password --region {region}")
             subprocess.run(
-                f"echo {login_password} | docker login --username AWS --password-stdin {account_id}.dkr.ecr.{region}.{uri_suffix}",
-                shell=True, check=True)
+                f"echo {login_password} | aws ecr get-login-password --region {region} | docker login --username AWS --password-stdin {account_id}.dkr.ecr.{region}.amazonaws.com",
+                shell=True, check=True, capture_output=True, text=True, encoding='utf-8'
+            )
 
-            # Tag and push the image
             subprocess.run(f"docker tag {self.image_name} {repository_uri}", shell=True, check=True)
             subprocess.run(f"docker push {repository_uri}", shell=True, check=True)
 
