@@ -85,7 +85,6 @@ def input_fn(request_body, request_content_type):
     except Exception as e:
         raise RuntimeError(f"Failed to transform data: {e}")
 
-    print(f"Transformed data: {transformed_data}.")
     return transformed_data
 
 

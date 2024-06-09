@@ -9,7 +9,7 @@ import tempfile
 
 from pythonProject.program.code.preprocessor import preprocess
 from pythonProject.program.code.containers.training.train import train
-from pythonProject.program.code.inferenece.inferenece import model_fn, input_fn, predict_fn, output_fn
+from pythonProject.program.code.inference.inference import model_fn, input_fn, predict_fn, output_fn
 from dotenv import load_dotenv
 
 load_dotenv()
