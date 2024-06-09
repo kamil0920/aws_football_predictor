@@ -18,14 +18,12 @@ class SageMakerContainerBuilder:
         self.training_path.mkdir(parents=True, exist_ok=True)
 
     def create_requirements(self):
-        requirements = """
-sagemaker-training
+        requirements = """sagemaker-training
 xgboost
 pandas
 numpy
-scikit-learn
-        """
-        with open(self.training_path / 'requirements.txt', 'w') as f:
+scikit-learn==1.2.1"""
+        with open(self.training_path / 'requirements.txt.txt', 'w') as f:
             f.write(requirements)
 
     def create_dockerfile(self):
@@ -36,9 +34,9 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
     build-essential \
     libssl-dev
 
-COPY requirements.txt .
+COPY requirements.txt.txt .
 RUN pip install --user --upgrade pip
-RUN pip3 install -r requirements.txt
+RUN pip3 install -r requirements.txt.txt
 
 COPY train.py /opt/ml/code/train.py
 ENV SAGEMAKER_PROGRAM train.py

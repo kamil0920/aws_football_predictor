@@ -7,55 +7,55 @@ sagemaker = boto3.client("sagemaker")
 
 
 def lambda_handler(event, context):
-    # If we are calling this function from EventBridge,
-    # we need to extract the model package ARN and the
-    # approval status from the event details. If we are
-    # calling this function from the pipeline, we can
-    # assume the model is approved and we can get the
-    # model package ARN as a direct parameter.
-    if "detail" in event:
-        model_package_arn = event["detail"]["ModelPackageArn"]
-        approval_status = event["detail"]["ModelApprovalStatus"]
-    else:
-        model_package_arn = event["model_package_arn"]
-        approval_status = "Approved"
-
-    print(f"Model: {model_package_arn}")
-    print(f"Approval status: {approval_status}")
-
-    if approval_status != "Approved":
-        response = {
-            "message": "Skipping deployment.",
-            "approval_status": approval_status,
-        }
-
-        print(response)
-        return {"statusCode": 200, "body": json.dumps(response)}
-
-    endpoint_name = os.environ["ENDPOINT"]
     data_capture_percentage = int(os.environ["DATA_CAPTURE_PERCENTAGE"])
     data_capture_destination = os.environ["DATA_CAPTURE_DESTINATION"]
+    model_package_group = os.environ["MODEL_PACKAGE_GROUP"]
+    endpoint_name = os.environ["ENDPOINT"]
     role = os.environ["ROLE"]
 
+    response = sagemaker.list_model_packages(
+        ModelPackageGroupName=model_package_group,
+        ModelApprovalStatus="Approved",
+        SortBy="CreationTime",
+        MaxResults=2,
+    )
+
+    if response["ModelPackageSummaryList"]:
+        production_package = response["ModelPackageSummaryList"][1]["ModelPackageArn"]
+        shadow_package = response["ModelPackageSummaryList"][0]["ModelPackageArn"]
+    else:
+        production_package = None
+        shadow_package = None
+
+    print(f"Production package: {production_package}")
+    print(f"Shadow package: {shadow_package}")
+
     timestamp = time.strftime("%m%d%H%M%S", time.localtime())
-    model_name = f"{endpoint_name}-model-{timestamp}"
+    prod_model_name = f"{endpoint_name}-model-prod-{timestamp}"
+    shadow_model_name = f"{endpoint_name}-model-shadow-{timestamp}"
     endpoint_config_name = f"{endpoint_name}-config-{timestamp}"
 
-    sagemaker.create_model(
-        ModelName=model_name,
-        ExecutionRoleArn=role,
-        PrimaryContainer={"ModelPackageName": model_package_arn}
-    )
+    prod_model = sagemaker.create_model(ModelName=prod_model_name, ExecutionRoleArn=role, PrimaryContainer={"ModelPackageName": production_package})
+    shadow_model = sagemaker.create_model(ModelName=shadow_model_name, ExecutionRoleArn=role, PrimaryContainer={"ModelPackageName": shadow_package})
 
     sagemaker.create_endpoint_config(
         EndpointConfigName=endpoint_config_name,
         ProductionVariants=[
             {
-                "ModelName": model_name,
-                "InstanceType": "ml.c5.4xlarge",
+                "ModelName": prod_model_name,
+                "InstanceType": "ml.m5.xlarge",
                 "InitialVariantWeight": 1,
                 "InitialInstanceCount": 1,
-                "VariantName": "AllTraffic",
+                "VariantName": "production-variant",
+            }
+        ],
+        ShadowProductionVariants=[
+            {
+                "ModelName": shadow_model_name,
+                "InstanceType": "ml.m5.xlarge",
+                "InitialVariantWeight": 1,
+                "InitialInstanceCount": 1,
+                "VariantName": "shadow-variant"
             }
         ],
         DataCaptureConfig={
