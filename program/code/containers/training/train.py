@@ -71,7 +71,7 @@ def train(model_directory, train_path, validation_path, hyperparameters, pipelin
         experiment.log_confusion_matrix(
             y_validation.astype(int), predictions.astype(int)
         )
-        experiment.log_model("penguins", model_filepath.as_posix())
+        experiment.log_model("football", model_filepath.as_posix())
 
 
 if __name__ == "__main__":
