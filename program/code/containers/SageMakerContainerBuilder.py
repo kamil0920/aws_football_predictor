@@ -22,8 +22,9 @@ class SageMakerContainerBuilder:
 xgboost
 pandas
 numpy
-scikit-learn==1.2.1"""
-        with open(self.training_path / 'requirements.txt.txt', 'w') as f:
+scikit-learn==1.2.1
+comet-ml"""
+        with open(self.training_path / 'requirements.txt', 'w') as f:
             f.write(requirements)
 
     def create_dockerfile(self):
