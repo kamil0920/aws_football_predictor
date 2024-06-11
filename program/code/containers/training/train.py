@@ -8,13 +8,17 @@ import pandas as pd
 from comet_ml import Experiment
 
 from pathlib import Path
-from sklearn.metrics import f1_score, log_loss
+from sklearn.metrics import f1_score, log_loss, confusion_matrix
 
 from xgboost import XGBClassifier
 
 
 def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperparameters):
-    model = XGBClassifier(**hyperparameters, random_state=42, scale_pos_weight=2, early_stopping_rounds=early_stopping_rounds, eval_metric='logloss')
+    unique, counts = np.unique(y_train, return_counts=True)
+    value_counts = dict(zip(unique, counts))
+    scale_pos_weight = value_counts[0] / value_counts[1]
+
+    model = XGBClassifier(**hyperparameters, random_state=42, scale_pos_weight=scale_pos_weight, early_stopping_rounds=early_stopping_rounds, eval_metric=['logloss', 'auc'])
     model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_val, y_val)], verbose=1)
 
     y_pred = model.predict(X_val)
@@ -68,10 +72,13 @@ def train(model_directory, train_path, validation_path, hyperparameters, pipelin
             }
         )
         experiment.log_dataset_hash(X_train)
-        experiment.log_confusion_matrix(
-            y_validation.astype(int), predictions.astype(int)
-        )
+
+        conf_matrix = confusion_matrix(y_validation.astype(int), predictions.astype(int))
+        experiment.log_confusion_matrix(matrix=conf_matrix, labels=["home_not_win", "home_win"])
+
         experiment.log_model("football", model_filepath.as_posix())
+        experiment.log_metrics({'f1_score': f1})
+        experiment.log_dataframe_profile(X_train, name="football_train")
 
 
 if __name__ == "__main__":
