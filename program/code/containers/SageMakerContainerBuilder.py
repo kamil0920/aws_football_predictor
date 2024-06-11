@@ -23,7 +23,9 @@ xgboost
 pandas
 numpy
 scikit-learn==1.2.1
-comet-ml"""
+comet-ml
+graphviz
+pandas-profiling"""
         with open(self.training_path / 'requirements.txt', 'w') as f:
             f.write(requirements)
 
@@ -35,9 +37,9 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
     build-essential \
     libssl-dev
 
-COPY requirements.txt.txt .
+COPY requirements.txt .
 RUN pip install --user --upgrade pip
-RUN pip3 install -r requirements.txt.txt
+RUN pip3 install -r requirements.txt
 
 COPY train.py /opt/ml/code/train.py
 ENV SAGEMAKER_PROGRAM train.py
@@ -48,7 +50,17 @@ ENV SAGEMAKER_PROGRAM train.py
     def build_image(self):
         platform_arg = "--platform='linux/amd64'" if platform.system() != "Windows" else ""
         build_command = f"docker build {platform_arg} -t {self.image_name} {self.training_path}" if not self.local_mode else f"docker build -t {self.image_name} {self.training_path}"
-        subprocess.run(build_command, shell=True, check=True)
+
+        try:
+            result = subprocess.run(build_command, shell=True, check=True, capture_output=True, text=True)
+            print(result.stdout)
+            print("Docker image built successfully.")
+        except subprocess.CalledProcessError as e:
+            print("An error occurred while building the Docker image.")
+            print("Command:", e.cmd)
+            print("Return code:", e.returncode)
+            print("Output:", e.output)
+            print("Error message:", e.stderr)
 
     def push_to_ecr(self):
         if not self.local_mode:

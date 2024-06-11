@@ -4,3 +4,5 @@ pandas
 numpy
 scikit-learn==1.2.1
 comet-ml
+graphviz
+pandas-profiling
