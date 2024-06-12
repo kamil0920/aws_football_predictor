@@ -14,11 +14,7 @@ from xgboost import XGBClassifier
 
 
 def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperparameters):
-    unique, counts = np.unique(y_train, return_counts=True)
-    value_counts = dict(zip(unique, counts))
-    scale_pos_weight = value_counts[0] / value_counts[1]
-
-    model = XGBClassifier(**hyperparameters, random_state=42, scale_pos_weight=scale_pos_weight, early_stopping_rounds=early_stopping_rounds, eval_metric=['logloss', 'auc'])
+    model = XGBClassifier(**hyperparameters, random_state=42, early_stopping_rounds=early_stopping_rounds, eval_metric=['logloss', 'auc'])
     model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_val, y_val)], verbose=1)
 
     y_pred = model.predict(X_val)
@@ -92,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--lambda_", type=float, default=9.082892225273682)
     parser.add_argument("--alpha", type=float, default=5.065713059538013)
     parser.add_argument("--min_child_weight", type=float, default=0.49876571387552704)
+    parser.add_argument("--scale_pos_weight", type=float, default=2.0)
 
     args, _ = parser.parse_known_args()
 
@@ -103,6 +100,7 @@ if __name__ == "__main__":
         "min_child_weight": args.min_child_weight,
         "reg_lambda": args.lambda_,
         "reg_alpha": args.alpha,
+        "scale_pos_weight": args.scale_pos_weight,
     }
 
     comet_api_key = os.environ.get("COMET_API_KEY", None)
