@@ -7,6 +7,20 @@ sagemaker = boto3.client("sagemaker")
 
 
 def lambda_handler(event, context):
+    if "detail" in event:
+        approval_status = event["detail"]["ModelApprovalStatus"]
+    else:
+        approval_status = "Approved"
+
+    if approval_status != "Approved":
+        response = {
+            "message": "Skipping deployment.",
+            "approval_status": approval_status,
+        }
+
+        print(response)
+        return {"statusCode": 200, "body": json.dumps(response)}
+
     data_capture_percentage = int(os.environ["DATA_CAPTURE_PERCENTAGE"])
     data_capture_destination = os.environ["DATA_CAPTURE_DESTINATION"]
     model_package_group = os.environ["MODEL_PACKAGE_GROUP"]
@@ -35,8 +49,8 @@ def lambda_handler(event, context):
     shadow_model_name = f"{endpoint_name}-model-shadow-{timestamp}"
     endpoint_config_name = f"{endpoint_name}-config-{timestamp}"
 
-    prod_model = sagemaker.create_model(ModelName=prod_model_name, ExecutionRoleArn=role, PrimaryContainer={"ModelPackageName": production_package})
-    shadow_model = sagemaker.create_model(ModelName=shadow_model_name, ExecutionRoleArn=role, PrimaryContainer={"ModelPackageName": shadow_package})
+    sagemaker.create_model(ModelName=prod_model_name, ExecutionRoleArn=role , Containers=[{"ModelPackageName": production_package}])
+    sagemaker.create_model(ModelName=shadow_model_name, ExecutionRoleArn=role, Containers=[{"ModelPackageName": shadow_package}])
 
     sagemaker.create_endpoint_config(
         EndpointConfigName=endpoint_config_name,
