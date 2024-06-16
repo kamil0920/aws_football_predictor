@@ -9,10 +9,11 @@ import joblib
 
 from dotenv import load_dotenv
 
-from preprocessor import preprocess
+from pythonProject.program.code.preprocessor import preprocess
 from train import train
 
 load_dotenv()
+
 
 @pytest.fixture(scope="function", autouse=False)
 def directory():

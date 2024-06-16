@@ -36,7 +36,8 @@ def directory():
         validation_path=directory / "validation",
         early_stopping_rounds=50,
         hyperparameters={},
-        pipeline_path=directory / "model"
+        pipeline_path=directory / "model",
+        experiment=None
     )
 
     # After training a model, we need to prepare a package just like
@@ -200,6 +201,7 @@ def test_handler_response_prediction_is_categorical(directory, payload):
     response = json.loads(response)
 
     assert response[0]["prediction"] == "home_win"
+    assert response[0]["confidence"] is not None
 
 
 def test_output_response_predictions_values(directory, payload_csv):

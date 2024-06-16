@@ -14,7 +14,7 @@ from xgboost import XGBClassifier
 
 
 def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperparameters):
-    model = XGBClassifier(**hyperparameters, random_state=42, early_stopping_rounds=early_stopping_rounds, eval_metric=['logloss', 'auc'])
+    model = XGBClassifier(**hyperparameters, random_state=42, early_stopping_rounds=early_stopping_rounds, eval_metric=['logloss', 'auc'], objective='binary:logistic')
     model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_val, y_val)], verbose=1)
 
     y_pred = model.predict(X_val)
@@ -47,7 +47,6 @@ def train(model_directory, train_path, validation_path, hyperparameters, pipelin
     model_directory = Path(model_directory)
     model_directory.mkdir(parents=True, exist_ok=True)
 
-    # Save the model in JSON format
     model_filepath = model_directory / "saved_model.xgb"
     model.save_model(str(model_filepath))
     print('Saving model to {}'.format(str(model_filepath)))
