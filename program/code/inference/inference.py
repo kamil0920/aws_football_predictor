@@ -122,12 +122,28 @@ def output_fn(prediction, response_content_type):
         predictions = [(classes[np.argmax(x)], x[np.argmax(x)]) for x in prediction]
 
         result = worker.Response(encoders.encode(predictions, response_content_type), mimetype=response_content_type) if worker else (predictions, response_content_type)
+        print(f'result: {result}')
         return result
 
     if response_content_type == "application/json":
         print("Processing JSON response")
         predictions = [{'prediction': classes[np.argmax(x)], 'confidence': float(x[np.argmax(x)])} for x in prediction]
         result = json.dumps(predictions)
+
+        print(f'result: {result}')
+
+        return (
+            worker.Response(result, mimetype=response_content_type)
+            if worker
+            else (result, response_content_type)
+        )
+
+    elif response_content_type == "application/jsonlines":
+        print("Processing JSON Lines response")
+        predictions = [{'prediction': classes[np.argmax(x)], 'confidence': float(x[np.argmax(x)])} for x in prediction]
+        result = "\n".join([json.dumps(pred) for pred in predictions])
+
+        print(f'result: {result}')
 
         return (
             worker.Response(result, mimetype=response_content_type)
