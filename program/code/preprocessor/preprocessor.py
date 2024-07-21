@@ -34,23 +34,22 @@ def preprocess(base_directory):
         ]
     )
 
-    df_train, df_validation, df_test = _split_data(df)
+    df_train, df_test = _split_data(df)
+    feature_names = df_train.columns
+    print(f'feature_names = {feature_names}')
 
     _save_baseline(base_directory, df_train, df_test)
 
     y_train = target_transformer.fit_transform(np.array(df_train.result_match.values).reshape(-1, 1))
-    y_validation = target_transformer.transform(np.array(df_validation.result_match.values).reshape(-1, 1))
     y_test = target_transformer.transform(np.array(df_test.result_match.values).reshape(-1, 1))
 
     df_train = df_train.drop("result_match", axis=1)
-    df_validation = df_validation.drop("result_match", axis=1)
     df_test = df_test.drop("result_match", axis=1)
 
     X_train = features_transformer.fit_transform(df_train)
-    X_validation = features_transformer.transform(df_validation)
     X_test = features_transformer.transform(df_test)
 
-    _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X_test, y_test)
+    _save_splits(base_directory, X_train, y_train, X_test, y_test, feature_names)
     _save_model(base_directory, target_transformer, features_transformer)
 
 
@@ -78,10 +77,9 @@ def _split_data(df):
     Splits the data into three sets: train, validation and test.
     """
 
-    df_train, temp = train_test_split(df, test_size=0.3, random_state=42, stratify=df['result_match'])
-    df_validation, df_test = train_test_split(temp, test_size=0.5, stratify=temp['result_match'])
+    df_train, df_test = train_test_split(df, test_size=0.2, random_state=42, stratify=df['result_match'])
 
-    return df_train, df_validation, df_test
+    return df_train, df_test
 
 
 def _save_baseline(base_directory, df_train, df_test):
@@ -97,35 +95,27 @@ def _save_baseline(base_directory, df_train, df_test):
 
         df = data.copy().dropna()
 
-        # We want to save the header only for the train baseline
-        # not for test baseline. We'll use test baseline to generate predictions
-        # later and we can't have header line because model won't
-        # be able to make prediction for it.
         header = split == 'train'
         df.to_csv(baseline_path / f"{split}-baseline.csv", header=header, index=False)
 
 
-def _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X_test, y_test):
+def _save_splits(base_directory, X_train, y_train, X_test, y_test, feature_names):
     """
     This function concatenates the transformed features and the target variable, and
     saves each one of the split sets to disk.
     """
 
     train = np.concatenate((X_train, y_train), axis=1)
-    validation = np.concatenate((X_validation, y_validation), axis=1)
     test = np.concatenate((X_test, y_test), axis=1)
 
     train_path = Path(base_directory) / "train"
-    validation_path = Path(base_directory) / "validation"
     test_path = Path(base_directory) / "test"
 
     train_path.mkdir(parents=True, exist_ok=True)
-    validation_path.mkdir(parents=True, exist_ok=True)
     test_path.mkdir(parents=True, exist_ok=True)
 
-    pd.DataFrame(train).to_csv(train_path / "train.csv", header=False, index=False)
-    pd.DataFrame(validation).to_csv(validation_path / "validation.csv", header=False, index=False)
-    pd.DataFrame(test).to_csv(test_path / "test.csv", header=False, index=False)
+    pd.DataFrame(train, columns=feature_names).to_csv(train_path / "train.csv", columns=feature_names.tolist(), index=False)
+    pd.DataFrame(test, columns=feature_names).to_csv(test_path / "test.csv", columns=feature_names.tolist(), index=False)
 
 
 def _save_model(base_directory, target_transformer, features_transformer):

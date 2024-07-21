@@ -31,7 +31,6 @@ def test_preprocess_generates_data_splits(directory):
     output_directories = os.listdir(directory)
 
     assert "train" in output_directories
-    assert "validation" in output_directories
     assert "test" in output_directories
 
 

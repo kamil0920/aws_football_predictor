@@ -7,10 +7,11 @@ from pathlib import Path
 import pytest
 import tempfile
 
-from preprocessor import preprocess
-from train import train
 from evaluation import evaluate
 from dotenv import load_dotenv
+
+from pythonProject.program.code.preprocessor.preprocessor import preprocess
+from pythonProject.program.code.containers.training.train import train
 
 load_dotenv()
 
@@ -41,18 +42,19 @@ def directory():
     train(
         model_directory=directory / "model",
         train_path=directory / "train",
-        validation_path=directory / "validation",
-        hyperparameters=params
+        pipeline_path=directory / "model",
+        hyperparameters=params,
+        experiment=None
     )
 
     # After training a model, we need to prepare a package just like
     # SageMaker would. This package is what the evaluation script is
     # expecting as an input.
     with tarfile.open(directory / "model.tar.gz", "w:gz") as tar:
-        tar.add(directory / "model" / "001", arcname="001")
+        tar.add(directory / "model")
 
     evaluate(
-        model_path=directory,
+        model_path=directory / "model",
         test_path=directory / "test",
         output_path=directory / "evaluation",
     )
@@ -66,6 +68,13 @@ def test_evaluate_generates_evaluation_report(directory):
     output = os.listdir(directory)
     assert "evaluation.json" in output
 
+
+def test_evaluation_report_contains_accuracy(directory):
+    with open(directory / "evaluation.json", 'r') as file:
+        report = json.load(file)
+
+    assert "metrics" in report
+    assert "precision" in report["metrics"]
 
 def test_evaluation_report_contains_accuracy(directory):
     with open(directory / "evaluation.json", 'r') as file:

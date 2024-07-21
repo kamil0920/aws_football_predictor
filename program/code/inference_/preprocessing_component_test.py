@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import tarfile
@@ -11,7 +10,7 @@ from dotenv import load_dotenv
 import pytest
 
 from preprocessing_component import input_fn, predict_fn, output_fn, model_fn
-from pythonProject.program.code import preprocessor
+from pythonProject.program.code.preprocessor import preprocessor
 
 load_dotenv()
 

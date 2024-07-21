@@ -9,11 +9,9 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 
 def evaluate(model_path, test_path, output_path):
     X_test = pd.read_csv(Path(test_path) / "test.csv")
-    y_test = X_test[X_test.columns[-1]]
-    X_test.drop(X_test.columns[-1], axis=1, inplace=True)
+    y_test = X_test['result_match']
+    X_test.drop(labels=['result_match'], axis=1, inplace=True)
 
-    # Let's now extract the model package so we can load
-    # it in memory.
     with tarfile.open(Path(model_path) / "model.tar.gz") as tar:
         tar.extractall(path=Path(model_path))
 
