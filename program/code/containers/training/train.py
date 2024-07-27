@@ -16,15 +16,6 @@ from xgboost import cv
 from xgboost import DMatrix
 
 
-# def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperparameters):
-#     model = XGBClassifier(**hyperparameters, random_state=42, early_stopping_rounds=early_stopping_rounds, eval_metric=['logloss', 'auc'], objective='binary:logistic')
-#     model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_val, y_val)], verbose=1)
-#
-#     y_pred = model.predict(X_val)
-#     f1 = f1_score(y_val, y_pred)
-#
-#     return f1, model, y_pred
-
 def evaluate_model(X, y, early_stopping_rounds, hyperparameters, n_splits=3):
     feature_names = X.columns.tolist()
 
@@ -62,12 +53,8 @@ def evaluate_model(X, y, early_stopping_rounds, hyperparameters, n_splits=3):
 
 
 def train(model_directory, train_path, hyperparameters, pipeline_path, experiment, early_stopping_rounds=25):
-    train_files = [file for file in Path(train_path).glob("*.csv")]
-
-    train_data = [pd.read_csv(file) for file in train_files]
-    X_train = pd.concat(train_data)
-    y_train = X_train['result_match']
-    X_train.drop(labels=['result_match'], axis=1, inplace=True)
+    X_train = pd.read_csv(Path(train_path) / 'train.csv')
+    y_train = X_train.pop('result_match')
 
     mean_auc, std_auc, mean_logloss, std_logloss, model = evaluate_model(X_train, y_train, early_stopping_rounds, hyperparameters, 4)
 
@@ -76,12 +63,12 @@ def train(model_directory, train_path, hyperparameters, pipeline_path, experimen
 
     model_filepath = model_directory / "saved_model.xgb"
     model.save_model(str(model_filepath))
-    print('Saving model to {}'.format(str(model_filepath)))
 
     with tarfile.open(Path(pipeline_path) / "model.tar.gz", "r:gz") as tar:
         tar.extractall(model_directory)
 
     process_experiment(X_train, experiment, hyperparameters, model, model_filepath, y_train)
+    print('Training finished.')
 
 
 def process_experiment(X_train, experiment, hyperparameters, model, model_filepath, y_train):
@@ -100,7 +87,6 @@ def process_experiment(X_train, experiment, hyperparameters, model, model_filepa
         )
         experiment.log_dataset_hash(X_train)
 
-        # Use the model's predictions to calculate the confusion matrix and F1 score
         y_pred = model.predict(X_train)
         f1 = f1_score(y_train.astype(int), y_pred.astype(int))
         conf_matrix = confusion_matrix(y_train.astype(int), y_pred.astype(int))

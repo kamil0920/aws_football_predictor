@@ -19,6 +19,7 @@ def preprocess(base_directory):
     """
 
     df = _read_data_from_input_csv_files(base_directory)
+    feature_names = df.columns
 
     target_transformer = ColumnTransformer(
         transformers=[("result_match", OrdinalEncoder(), [0])]
@@ -35,8 +36,6 @@ def preprocess(base_directory):
     )
 
     df_train, df_test = _split_data(df)
-    feature_names = df_train.columns
-    print(f'feature_names = {feature_names}')
 
     _save_baseline(base_directory, df_train, df_test)
 
@@ -52,6 +51,8 @@ def preprocess(base_directory):
     _save_splits(base_directory, X_train, y_train, X_test, y_test, feature_names)
     _save_model(base_directory, target_transformer, features_transformer)
 
+    print(f'Preprocessed finished.')
+
 
 def _read_data_from_input_csv_files(base_directory):
     """
@@ -60,13 +61,10 @@ def _read_data_from_input_csv_files(base_directory):
     """
 
     input_directory = Path(base_directory) / "input"
-    files = [file for file in input_directory.glob("*.csv")]
+    X_file = pd.read_csv(Path(input_directory) / "df.csv")
+    y_file = pd.read_csv(Path(input_directory) / "y.csv")
 
-    if len(files) == 0:
-        raise ValueError(f"The are no CSV files in {str(input_directory)}/")
-
-    raw_data = [pd.read_csv(file) for file in files]
-    df = pd.concat(raw_data, axis=1)
+    df = pd.concat([X_file, y_file], axis=1)
 
     # Shuffle the data
     return df.sample(frac=1, random_state=42)
@@ -114,9 +112,14 @@ def _save_splits(base_directory, X_train, y_train, X_test, y_test, feature_names
     train_path.mkdir(parents=True, exist_ok=True)
     test_path.mkdir(parents=True, exist_ok=True)
 
-    pd.DataFrame(train, columns=feature_names).to_csv(train_path / "train.csv", columns=feature_names.tolist(), index=False)
-    pd.DataFrame(test, columns=feature_names).to_csv(test_path / "test.csv", columns=feature_names.tolist(), index=False)
+    train_file = train_path / "train.csv"
+    test_file = test_path / "test.csv"
 
+    pd.DataFrame(train, columns=feature_names).to_csv(train_file, index=False)
+    pd.DataFrame(test, columns=feature_names).to_csv(test_file, index=False)
+
+    print(f"Saved train data to: {train_file}")
+    print(f"Saved test data to: {test_file}")
 
 def _save_model(base_directory, target_transformer, features_transformer):
     """
