@@ -9,82 +9,107 @@ from comet_ml import Experiment
 
 from pathlib import Path
 from sklearn.metrics import f1_score, log_loss, confusion_matrix, roc_auc_score
-from sklearn.model_selection import train_test_split, StratifiedKFold
 
-from xgboost import XGBClassifier
-from xgboost import cv
-from xgboost import DMatrix
+from xgboost import XGBClassifier, cv, DMatrix
+import lightgbm as lgb
 
 
-def evaluate_model(X, y, early_stopping_rounds, hyperparameters, n_splits=3):
-    feature_names = X.columns.tolist()
+class ModelEvaluator:
+    @staticmethod
+    def evaluate_model_lgb(X, y, hyperparameters, n_splits=3):
+        feature_names = X.columns.tolist()
+        lgb_data = lgb.Dataset(data=X, label=y, feature_name=feature_names)
 
-    auc_scores = []
-    logloss_scores = []
-    best_iterations = []
+        cv_results = lgb.cv(params=hyperparameters,
+                            train_set=lgb_data,
+                            num_boost_round=10000,
+                            nfold=n_splits,
+                            metrics=['auc', 'logloss'],
+                            stratified=True,
+                            shuffle=True,
+                            seed=123,
+                            return_cvbooster=True)
 
-    data_dmatrix = DMatrix(data=X, label=y, feature_names=feature_names)
+        best_iteration = np.argmax(cv_results['valid auc-mean'])
+        mean_auc = cv_results['valid auc-mean'][best_iteration]
+        std_auc = np.std(cv_results['valid auc-stdv'])
+        best_iteration += 1
 
-    xgb_cv = cv(dtrain=data_dmatrix, params=hyperparameters, nfold=n_splits,
-                num_boost_round=50, early_stopping_rounds=early_stopping_rounds,
-                metrics=['logloss', 'auc'], as_pandas=True, stratified=True, seed=123)
+        print(f"LGB Mean Test AUC: {mean_auc:.2f} (±{std_auc :.2f})")
+        print(f"LGB Average Best Iteration: {best_iteration:.2f}")
 
-    test_auc_mean = xgb_cv['test-auc-mean'].max()
-    best_iteration = xgb_cv['test-auc-mean'].idxmax()
+        final_model = lgb.LGBMClassifier(**hyperparameters, random_state=42, n_estimators=best_iteration)
+        final_model.fit(X, y)
 
-    auc_scores.append(test_auc_mean)
-    logloss_scores.append(xgb_cv['test-logloss-mean'].min())
-    best_iterations.append(best_iteration)
+        return mean_auc, std_auc, final_model
 
-    mean_auc = np.mean(auc_scores)
-    std_auc = np.std(auc_scores)
-    mean_logloss = np.mean(logloss_scores)
-    std_logloss = np.std(logloss_scores)
-    best_iteration = np.mean(best_iterations)
+    @staticmethod
+    def evaluate_model_xgb(X, y, early_stopping_rounds, hyperparameters, n_splits=3):
+        feature_names = X.columns.tolist()
+        data_dmatrix = DMatrix(data=X, label=y, feature_names=feature_names)
 
-    print(f"Mean Test AUC: {mean_auc:.2f} (±{std_auc:.2f})")
-    print(f"Mean Test Log Loss: {mean_logloss:.2f} (±{std_logloss:.2f})")
-    print(f"Average Best Iteration: {best_iteration:.2f}")
+        xgb_cv = cv(dtrain=data_dmatrix, params=hyperparameters, nfold=n_splits,
+                    num_boost_round=10000, early_stopping_rounds=early_stopping_rounds,
+                    metrics=['logloss', 'auc'], as_pandas=True, stratified=True, seed=123)
 
-    final_model = XGBClassifier(**hyperparameters, random_state=42, n_estimators=int(best_iteration))
-    final_model.fit(X, y)
+        best_iteration = xgb_cv['test-auc-mean'].idxmax()
+        mean_auc = xgb_cv['test-auc-mean'][best_iteration]
+        mean_logloss = xgb_cv['test-logloss-mean'][best_iteration]
 
-    return mean_auc, std_auc, mean_logloss, std_logloss, final_model
+        print(f"XGB Mean Test AUC: {mean_auc:.2f} (±{np.std(xgb_cv['test-auc-mean']):.2f})")
+        print(f"XGB Mean Test Log Loss: {mean_logloss:.2f} (±{np.std(xgb_cv['test-logloss-mean']):.2f})")
+        print(f"XGB Average Best Iteration: {best_iteration + 1:.2f}")
+
+        final_model = XGBClassifier(**hyperparameters, random_state=42, n_estimators=best_iteration + 1)
+        final_model.fit(X, y)
+
+        return mean_auc, np.std(xgb_cv['test-auc-mean']), final_model
 
 
 def train(model_directory, train_path, hyperparameters, pipeline_path, experiment, early_stopping_rounds=25):
     X_train = pd.read_csv(Path(train_path) / 'train.csv')
     y_train = X_train.pop('result_match')
 
-    mean_auc, std_auc, mean_logloss, std_logloss, model = evaluate_model(X_train, y_train, early_stopping_rounds, hyperparameters, 4)
+    mean_auc_xgb, std_auc_xgb, model_xgb = ModelEvaluator.evaluate_model_xgb(X_train, y_train, early_stopping_rounds, hyperparameters, 4)
+    mean_auc_lgb, std_auc_lgb, model_lgb = ModelEvaluator.evaluate_model_lgb(X_train, y_train, hyperparameters, 4)
+
+    if mean_auc_lgb > mean_auc_xgb:
+        best_model = model_lgb
+        best_model_name = "saved_model_lgb.txt"
+        print("LightGBM model is better.")
+    else:
+        best_model = model_xgb
+        best_model_name = "saved_model_xgb.xgb"
+        print("XGBoost model is better.")
 
     model_directory = Path(model_directory)
     model_directory.mkdir(parents=True, exist_ok=True)
 
-    model_filepath = model_directory / "saved_model.xgb"
-    model.save_model(str(model_filepath))
+    model_filepath = model_directory / best_model_name
+    if best_model_name.endswith("xgb.xgb"):
+        best_model.save_model(str(model_filepath))
+    else:
+        best_model.booster_.save_model(str(model_filepath))
 
     with tarfile.open(Path(pipeline_path) / "model.tar.gz", "r:gz") as tar:
         tar.extractall(model_directory)
 
-    process_experiment(X_train, experiment, hyperparameters, model, model_filepath, y_train)
+    process_experiment(X_train, experiment, hyperparameters, best_model, model_filepath, y_train)
     print('Training finished.')
 
 
 def process_experiment(X_train, experiment, hyperparameters, model, model_filepath, y_train):
     if experiment:
-        experiment.log_parameters(
-            {
-                "eta": hyperparameters['eta'],
-                "max_depth": hyperparameters['max_depth'],
-                "subsample": hyperparameters['subsample'],
-                "colsample_bytree": hyperparameters['colsample_bytree'],
-                "min_child_weight": hyperparameters['min_child_weight'],
-                "reg_lambda": hyperparameters['reg_lambda'],
-                "reg_alpha": hyperparameters['reg_alpha'],
-                "objective": hyperparameters['objective'],
-            }
-        )
+        experiment.log_parameters({
+            "eta": hyperparameters['eta'],
+            "max_depth": hyperparameters['max_depth'],
+            "subsample": hyperparameters['subsample'],
+            "colsample_bytree": hyperparameters['colsample_bytree'],
+            "min_child_weight": hyperparameters['min_child_weight'],
+            "reg_lambda": hyperparameters['reg_lambda'],
+            "reg_alpha": hyperparameters['reg_alpha'],
+            "objective": hyperparameters['objective'],
+        })
         experiment.log_dataset_hash(X_train)
 
         y_pred = model.predict(X_train)
@@ -101,19 +126,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--early_stopping_rounds", type=int, default=25)
 
-    parser.add_argument("--eta", type=float, default=0.10552574516231328)
+    parser.add_argument("--eta", type=float, default=0.105)
     parser.add_argument("--max_depth", type=int, default=9)
-    parser.add_argument("--subsample", type=float, default=0.8953781772368965)
-    parser.add_argument("--colsample_bytree", type=float, default=0.8448004658642061)
-    parser.add_argument("--lambda_", type=float, default=9.082892225273682)
-    parser.add_argument("--alpha", type=float, default=5.065713059538013)
-    parser.add_argument("--min_child_weight", type=float, default=0.49876571387552704)
+    parser.add_argument("--subsample", type=float, default=0.895)
+    parser.add_argument("--colsample_bytree", type=float, default=0.844)
+    parser.add_argument("--lambda_", type=float, default=9.082)
+    parser.add_argument("--alpha", type=float, default=5.065)
+    parser.add_argument("--min_child_weight", type=float, default=0.498)
     parser.add_argument("--scale_pos_weight", type=float, default=2.0)
     parser.add_argument("--objective", type=str, default='binary:logistic')
 
     args, _ = parser.parse_known_args()
 
-    params = {
+    hyperparameters = {
         "eta": args.eta,
         "max_depth": args.max_depth,
         "subsample": args.subsample,
@@ -140,11 +165,17 @@ if __name__ == "__main__":
         else None
     )
 
-    training_env = json.loads(os.environ.get("SM_TRAINING_ENV", {}))
+    training_env = json.loads(os.environ.get("SM_TRAINING_ENV", "{}"))
     job_name = training_env.get("job_name", None) if training_env else None
 
     if job_name and experiment:
         experiment.set_name(job_name)
+
+    if 'train' in job_name:
+        hyperparameters = {}
+
+    print(f'job_name: {job_name}')
+    print(f'hyperparameters: {hyperparameters}')
 
     train(
         model_directory=os.environ["SM_MODEL_DIR"],
@@ -152,5 +183,5 @@ if __name__ == "__main__":
         pipeline_path=os.environ["SM_CHANNEL_PIPELINE"],
         experiment=experiment,
         early_stopping_rounds=args.early_stopping_rounds,
-        hyperparameters=params
+        hyperparameters=hyperparameters
     )

@@ -20,6 +20,7 @@ class SageMakerContainerBuilder:
     def create_requirements(self):
         requirements = """sagemaker-training
 xgboost
+lightgbm
 pandas
 numpy
 scikit-learn==1.2.1
