@@ -125,7 +125,7 @@ class ECRLifecyclePolicyService:
                     "rulePriority": 1,
                     "description": "Keep only one untagged image, expire all others",
                     "selection": {
-                        "tagStatus": "untagged",
+                        "tagStatus": "any",
                         "countType": "imageCountMoreThan",
                         "countNumber": 1
                     },
