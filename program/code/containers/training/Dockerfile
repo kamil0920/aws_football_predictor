@@ -1,4 +1,3 @@
-
 FROM python:3.10-slim
 RUN apt-get -y update && apt-get install -y --no-install-recommends     python3     build-essential     libssl-dev
 

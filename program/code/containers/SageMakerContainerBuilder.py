@@ -19,13 +19,13 @@ class SageMakerContainerBuilder:
 
     def create_requirements(self):
         requirements = """sagemaker-training
-xgboost
-pandas
+pandas==2.2.2
 numpy
-scikit-learn==1.2.1
-comet-ml
-graphviz
-pandas-profiling"""
+xgboost-cpu==2.1.1
+scikit-learn==1.5.1
+scipy
+sagemaker
+smdebug"""
         with open(self.training_path / 'requirements.txt', 'w') as f:
             f.write(requirements)
 
@@ -52,7 +52,7 @@ ENV SAGEMAKER_PROGRAM train.py
         build_command = f"docker build {platform_arg} -t {self.image_name} {self.training_path}" if not self.local_mode else f"docker build -t {self.image_name} {self.training_path}"
 
         try:
-            result = subprocess.run(build_command, shell=True, check=True, capture_output=True, text=True)
+            result = subprocess.run(build_command, shell=True, check=True, capture_output=True, text=True, encoding='utf-8')
             print(result.stdout)
             print("Docker image built successfully.")
         except subprocess.CalledProcessError as e:

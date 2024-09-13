@@ -19,7 +19,6 @@ def preprocess(base_directory):
     """
 
     df = _read_data_from_input_csv_files(base_directory)
-    feature_names = df.columns
 
     target_transformer = ColumnTransformer(
         transformers=[("result_match", OrdinalEncoder(), [0])]
@@ -35,23 +34,26 @@ def preprocess(base_directory):
         ]
     )
 
-    df_train, df_test = _split_data(df)
+    df_train, df_validation, df_test = _split_data(df)
 
     _save_baseline(base_directory, df_train, df_test)
 
     y_train = target_transformer.fit_transform(np.array(df_train.result_match.values).reshape(-1, 1))
+    y_validation = target_transformer.transform(np.array(df_validation.result_match.values).reshape(-1, 1))
     y_test = target_transformer.transform(np.array(df_test.result_match.values).reshape(-1, 1))
 
     df_train = df_train.drop("result_match", axis=1)
+    df_validation = df_validation.drop("result_match", axis=1)
     df_test = df_test.drop("result_match", axis=1)
 
+    columns = df_train.columns
+
     X_train = features_transformer.fit_transform(df_train)
+    X_validation = features_transformer.transform(df_validation)
     X_test = features_transformer.transform(df_test)
 
-    _save_splits(base_directory, X_train, y_train, X_test, y_test, feature_names)
+    _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X_test, y_test, columns)
     _save_model(base_directory, target_transformer, features_transformer)
-
-    print(f'Preprocessed finished.')
 
 
 def _read_data_from_input_csv_files(base_directory):
@@ -61,10 +63,13 @@ def _read_data_from_input_csv_files(base_directory):
     """
 
     input_directory = Path(base_directory) / "input"
-    X_file = pd.read_csv(Path(input_directory) / "df.csv")
-    y_file = pd.read_csv(Path(input_directory) / "y.csv")
+    files = [file for file in input_directory.glob("*.csv")]
 
-    df = pd.concat([X_file, y_file], axis=1)
+    if len(files) == 0:
+        raise ValueError(f"The are no CSV files in {str(input_directory)}/")
+
+    raw_data = [pd.read_csv(file) for file in files]
+    df = pd.concat(raw_data, axis=1)
 
     # Shuffle the data
     return df.sample(frac=1, random_state=42)
@@ -75,9 +80,10 @@ def _split_data(df):
     Splits the data into three sets: train, validation and test.
     """
 
-    df_train, df_test = train_test_split(df, test_size=0.2, random_state=42, stratify=df['result_match'])
+    df_train, temp = train_test_split(df, test_size=0.3, random_state=42, stratify=df['result_match'])
+    df_validation, df_test = train_test_split(temp, test_size=0.5, stratify=temp['result_match'])
 
-    return df_train, df_test
+    return df_train, df_validation, df_test
 
 
 def _save_baseline(base_directory, df_train, df_test):
@@ -93,33 +99,39 @@ def _save_baseline(base_directory, df_train, df_test):
 
         df = data.copy().dropna()
 
-        header = split == 'train'
-        df.to_csv(baseline_path / f"{split}-baseline.csv", header=header, index=False)
+        # We want to save the header only for the train baseline
+        # not for test baseline. We'll use test baseline to generate predictions
+        # later and we can't have header line because model won't
+        # be able to make prediction for it.
+        df.to_csv(baseline_path / f"{split}-baseline.csv", index=False)
 
 
-def _save_splits(base_directory, X_train, y_train, X_test, y_test, feature_names):
+def _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X_test, y_test, columns):
     """
     This function concatenates the transformed features and the target variable, and
     saves each one of the split sets to disk.
     """
 
-    train = np.concatenate((X_train, y_train), axis=1)
-    test = np.concatenate((X_test, y_test), axis=1)
-
     train_path = Path(base_directory) / "train"
+    validation_path = Path(base_directory) / "validation"
     test_path = Path(base_directory) / "test"
 
     train_path.mkdir(parents=True, exist_ok=True)
+    validation_path.mkdir(parents=True, exist_ok=True)
     test_path.mkdir(parents=True, exist_ok=True)
 
-    train_file = train_path / "train.csv"
-    test_file = test_path / "test.csv"
+    train = pd.DataFrame(X_train, columns=columns)
+    validation = pd.DataFrame(X_validation, columns=columns)
+    test = pd.DataFrame(X_test, columns=columns)
 
-    pd.DataFrame(train, columns=feature_names).to_csv(train_file, index=False)
-    pd.DataFrame(test, columns=feature_names).to_csv(test_file, index=False)
+    train.insert(0, 'result_match', y_train)
+    validation.insert(0, 'result_match', y_validation)
+    test.insert(0, 'result_match', y_test)
 
-    print(f"Saved train data to: {train_file}")
-    print(f"Saved test data to: {test_file}")
+    train.to_csv(train_path / "train.csv", index=False)
+    validation.to_csv(validation_path / "validation.csv", index=False)
+    test.to_csv(test_path / "test.csv", index=False)
+
 
 def _save_model(base_directory, target_transformer, features_transformer):
     """
