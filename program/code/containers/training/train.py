@@ -81,6 +81,8 @@ def train(model_directory, train_path, validation_path, hyperparameters, pipelin
     model.save_model(str(model_filepath))
     print('Saving model to {}'.format(str(model_filepath)))
 
+    print(f'pipeline path: {pipeline_path}')
+
     with tarfile.open(Path(pipeline_path) / "model.tar.gz", "r:gz") as tar:
         tar.extractall(model_directory)
 
