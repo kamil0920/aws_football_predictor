@@ -1,12 +1,13 @@
 import json
 import logging
+
 from botocore.exceptions import ClientError
 
 
 class EcrManager:
     def __init__(self, ecr_client):
         self.ecr_client = ecr_client
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def create_repository(self, repository_name):
         """
@@ -35,10 +36,28 @@ class EcrManager:
             self.logger.error(f"Error describing repository: {e}")
             raise
 
-    def put_lifecycle_policy(self, repository_name, lifecycle_policy):
+    def put_lifecycle_policy(self, repository_name):
         """
         Attaches a lifecycle policy to an ECR repository.
         """
+
+        lifecycle_policy = {
+            "rules": [
+                {
+                    "rulePriority": 1,
+                    "description": "Keep only one untagged image, expire all others",
+                    "selection": {
+                        "tagStatus": "any",
+                        "countType": "imageCountMoreThan",
+                        "countNumber": 1
+                    },
+                    "action": {
+                        "type": "expire"
+                    }
+                }
+            ]
+        }
+
         try:
             self.ecr_client.put_lifecycle_policy(
                 repositoryName=repository_name,

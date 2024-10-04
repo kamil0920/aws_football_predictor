@@ -1,5 +1,6 @@
 import json
 import logging
+
 import boto3
 from botocore.exceptions import ClientError
 
@@ -19,52 +20,52 @@ class PolicyManager:
         permissions_policy = {
             "Version": "2012-10-17",
             "Statement": [
-                {
-                    "Sid": "ECR",
-                    "Effect": "Allow",
-                    "Action": [
-                        "ecr:CreateRepository",
-                        "ecr:DescribeRepositories",
-                        "ecr:DeleteRepository",
-                        "ecr:ListImages",
-                        "ecr:PutImage",
-                        "ecr:InitiateLayerUpload",
-                        "ecr:UploadLayerPart",
-                        "ecr:CompleteLayerUpload",
-                        "ecr:BatchCheckLayerAvailability",
-                        "ecr:TagResource",
-                        "ecr:PutLifecyclePolicy",
-                        "ecr:GetAuthorizationToken"
-                    ],
-                    "Resource": "*"
-                },
-                {
-                    "Sid": "S3",
-                    "Effect": "Allow",
-                    "Action": [
-                        "s3:CreateBucket",
-                        "s3:GetBucketLocation",
-                        "s3:PutObject",
-                        "s3:GetObject",
-                        "s3:DeleteObject"
-                    ],
-                    "Resource": "*"
-                },
-                {
-                    "Sid": "S3ListBucket",
-                    "Effect": "Allow",
-                    "Action": "s3:ListBucket",
-                    "Resource": "*"
-                },
-                {
-                    "Sid": "EventBridge",
-                    "Effect": "Allow",
-                    "Action": [
-                        "events:PutRule",
-                        "events:PutTargets"
-                    ],
-                    "Resource": "*"
-                },
+                # {
+                #     "Sid": "ECR",
+                #     "Effect": "Allow",
+                #     "Action": [
+                #         "ecr:CreateRepository",
+                #         "ecr:DescribeRepositories",
+                #         "ecr:DeleteRepository",
+                #         "ecr:ListImages",
+                #         "ecr:PutImage",
+                #         "ecr:InitiateLayerUpload",
+                #         "ecr:UploadLayerPart",
+                #         "ecr:CompleteLayerUpload",
+                #         "ecr:BatchCheckLayerAvailability",
+                #         "ecr:TagResource",
+                #         "ecr:PutLifecyclePolicy",
+                #         "ecr:GetAuthorizationToken"
+                #     ],
+                #     "Resource": "*"
+                # },
+                # {
+                #     "Sid": "S3",
+                #     "Effect": "Allow",
+                #     "Action": [
+                #         "s3:CreateBucket",
+                #         "s3:GetBucketLocation",
+                #         "s3:PutObject",
+                #         "s3:GetObject",
+                #         "s3:DeleteObject"
+                #     ],
+                #     "Resource": "*"
+                # },
+                # {
+                #     "Sid": "S3ListBucket",
+                #     "Effect": "Allow",
+                #     "Action": "s3:ListBucket",
+                #     "Resource": "*"
+                # },
+                # {
+                #     "Sid": "EventBridge",
+                #     "Effect": "Allow",
+                #     "Action": [
+                #         "events:PutRule",
+                #         "events:PutTargets"
+                #     ],
+                #     "Resource": "*"
+                # },
                 {
                     "Sid": "IAM0",
                     "Effect": "Allow",
@@ -85,44 +86,44 @@ class PolicyManager:
                         }
                     }
                 },
-                {
-                    "Sid": "Lambda",
-                    "Effect": "Allow",
-                    "Action": [
-                        "lambda:CreateFunction",
-                        "lambda:DeleteFunction",
-                        "lambda:InvokeFunctionUrl",
-                        "lambda:InvokeFunction",
-                        "lambda:UpdateFunctionCode",
-                        "lambda:InvokeAsync",
-                        "lambda:AddPermission",
-                        "lambda:RemovePermission"
-                    ],
-                    "Resource": "*"
-                },
-                {
-                    "Sid": "SageMaker",
-                    "Effect": "Allow",
-                    "Action": [
-                        "sagemaker:UpdateDomain",
-                        "sagemaker:UpdateUserProfile"
-                    ],
-                    "Resource": "*"
-                },
-                {
-                    "Sid": "CloudWatch",
-                    "Effect": "Allow",
-                    "Action": [
-                        "cloudwatch:PutMetricData",
-                        "cloudwatch:GetMetricData",
-                        "cloudwatch:DescribeAlarmsForMetric",
-                        "logs:CreateLogStream",
-                        "logs:PutLogEvents",
-                        "logs:CreateLogGroup",
-                        "logs:DescribeLogStreams"
-                    ],
-                    "Resource": "*"
-                },
+                # {
+                #     "Sid": "Lambda",
+                #     "Effect": "Allow",
+                #     "Action": [
+                #         "lambda:CreateFunction",
+                #         "lambda:DeleteFunction",
+                #         "lambda:InvokeFunctionUrl",
+                #         "lambda:InvokeFunction",
+                #         "lambda:UpdateFunctionCode",
+                #         "lambda:InvokeAsync",
+                #         "lambda:AddPermission",
+                #         "lambda:RemovePermission"
+                #     ],
+                #     "Resource": "*"
+                # },
+                # {
+                #     "Sid": "SageMaker",
+                #     "Effect": "Allow",
+                #     "Action": [
+                #         "sagemaker:UpdateDomain",
+                #         "sagemaker:UpdateUserProfile"
+                #     ],
+                #     "Resource": "*"
+                # },
+                # {
+                #     "Sid": "CloudWatch",
+                #     "Effect": "Allow",
+                #     "Action": [
+                #         "cloudwatch:PutMetricData",
+                #         "cloudwatch:GetMetricData",
+                #         "cloudwatch:DescribeAlarmsForMetric",
+                #         "logs:CreateLogStream",
+                #         "logs:PutLogEvents",
+                #         "logs:CreateLogGroup",
+                #         "logs:DescribeLogStreams"
+                #     ],
+                #     "Resource": "*"
+                # },
                 {
                     "Sid": "IAM",
                     "Effect": "Allow",

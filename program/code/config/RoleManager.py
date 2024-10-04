@@ -1,9 +1,7 @@
 import json
 import logging
-import boto3
-from botocore.exceptions import ClientError
 
-from program.code.config.PolicyManager import PolicyManager
+import boto3
 
 
 class RoleManager:
@@ -13,61 +11,149 @@ class RoleManager:
         self.role_name = role_name
         self.policy_name = policy_name
         self.region = region
-        self.logger = logging.getLogger(__name__)
         self.session = boto3.Session()
         self.iam_client = self.session.client('iam')
-
-    def update_role_policy(self):
-        """
-        Updates the trust relationship policy of the IAM role.
-        """
-        trust_relationship_policy = {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": [
-                            "sagemaker.amazonaws.com",
-                            "events.amazonaws.com"
-                        ],
-                    },
-                    "Action": "sts:AssumeRole"
-                },
-                {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": f"arn:aws:iam::{self.account_id}:user/{self.user_name}"
-                    },
-                    "Action": "sts:AssumeRole"
-                }
-            ]
-        }
-
-        try:
-            self.iam_client.update_assume_role_policy(
-                RoleName=self.role_name,
-                PolicyDocument=json.dumps(trust_relationship_policy)
-            )
-            print(f"Successfully updated trust relationship for role: {self.role_name}")
-        except ClientError as e:
-            print(f"Error updating trust relationship: {e}")
-            raise
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def create_role_and_policy(self):
         """
         Orchestrates the creation of policies and role updates.
         """
-        policy_manager = PolicyManager(self.account_id, self.user_name)
 
-        # Step 1: Update Trust Relationship
-        self.update_role_policy()
+        try:
+            self.logger.info(f"Attempting to create role '{self.role_name}' in account '{self.account_id}' for user '{self.user_name}'.")
 
-        # Step 2: Create Permissions Policy
-        policy_arn = policy_manager.create_permissions_policy(self.iam_client, self.policy_name)
+            user = self.iam_client.get_user(
+                UserName=self.user_name,
+            )
 
-        # Step 3: Attach Policy to Role
-        policy_manager.attach_policy_to_role(self.iam_client, policy_arn, self.role_name)
+            response = self.iam_client.create_role(
+                RoleName=self.role_name,
+                AssumeRolePolicyDocument=json.dumps(
+                    {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "Service": ["lambda.amazonaws.com", "events.amazonaws.com", "ec2.amazonaws.com", "sagemaker.amazonaws.com"],
+                                },
+                                "Action": "sts:AssumeRole",
+                            },
+                            {
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "AWS": user['User']['Arn']
+                                },
+                                "Action": "sts:AssumeRole"
+                            }
+                        ],
+                    },
+                ),
+                Description="Football Project Role",
+            )
 
-        # Step 4: Attach Inline Policy to User
-        policy_manager.attach_inline_policy_to_user(self.iam_client, self.role_name)
+            role_arn = response["Role"]["Arn"]
+
+            self._attach_policies()
+
+            self.logger.info(f'Role "{self.role_name}" successfully created with ARN "{role_arn}".')
+            return role_arn
+        except self.iam_client.exceptions.EntityAlreadyExistsException:
+            self.logger.warning(f'Role "{self.role_name}" already exists. Updating assume role policy.')
+
+            trust_policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "AWS": f"arn:aws:iam::{self.account_id}:user/{self.user_name}"
+                        },
+                        "Action": "sts:AssumeRole"
+                    }
+                ]
+            }
+
+            self.iam_client.update_assume_role_policy(RoleName=self.role_name, PolicyDocument=json.dumps(trust_policy))
+
+            response = self.iam_client.get_role(RoleName=self.role_name)
+            role_arn = response["Role"]["Arn"]
+
+            self._attach_policies()
+            self.logger.info(f'Role "{self.role_name}" already exists. Policies updated.')
+            return role_arn
+        except Exception as e:
+            self.logger.error(f"An error occurred while creating the role: {str(e)}", exc_info=True)
+            raise
+
+    def _attach_policies(self):
+        self.iam_client.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            RoleName=self.role_name,
+        )
+        self.iam_client.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess",
+            RoleName=self.role_name,
+        )
+
+        policy = self._create_custom_ecr_policy()
+
+        self.iam_client.attach_role_policy(
+            PolicyArn=policy['Arn'],
+            RoleName=self.role_name
+        )
+        self.iam_client.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/AmazonS3FullAccess",
+            RoleName=self.role_name,
+        )
+        self.iam_client.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess",
+            RoleName=self.role_name,
+        )
+
+    def _create_custom_ecr_policy(self):
+        custom_ecr_policy_name = 'CustomElasticContainerPolicy'
+        try:
+            custom_policy_document = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "ecr:GetAuthorizationToken"
+                        ],
+                        "Resource": "*"
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "ecr:CreateRepository",
+                            "ecr:DeleteRepository",
+                            "ecr:TagResource",
+                            "ecr:DescribeRepositories",
+                            "ecr:GetDownloadUrlForLayer",
+                            "ecr:PutLifecyclePolicy",
+                            "ecr:BatchGetImage",
+                            "ecr:BatchCheckLayerAvailability",
+                            "ecr:PutImage"
+                        ],
+                        "Resource": [
+                            f"arn:aws:ecr:{self.region}:{self.account_id}:repository/sagemaker-processing-container",
+                            f"arn:aws:ecr:{self.region}:{self.account_id}:repository/xgb-clf-training-container"
+                        ]
+                    }
+                ]
+            }
+
+            policy = self.iam_client.create_policy(
+                PolicyName=custom_ecr_policy_name,
+                PolicyDocument=json.dumps(custom_policy_document)
+            )
+            return policy
+
+        except self.iam_client.exceptions.EntityAlreadyExistsException:
+            policy_arn = f"arn:aws:iam::{self.account_id}:policy/{custom_ecr_policy_name}"
+            policy = self.iam_client.get_policy(PolicyArn=policy_arn)
+            self.logger.debug(f'Policy "{self.policy_name}" already exists.')
+            return policy['Policy']
