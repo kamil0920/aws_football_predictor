@@ -1,5 +1,17 @@
 ## AWS Football Predictor
-This project leverages AWS services for loading data, performing preliminary preprocessing, model deployment, and scalability. Ensure you have your AWS credentials configured. Examples of AWS services used include S3 for data storage and SageMaker for model training and deployment.
+This project implements an end-to-end machine learning pipeline for predicting football match outcomes using AWS cloud infrastructure. The pipeline covers data ingestion, preprocessing, model training, evaluation, and deployment, utilizing modern tools and services to ensure scalability and efficiency. The core model is built using XGBoost, and the entire pipeline is orchestrated using various AWS services for automation and reliability.
+
+**Key Technologies**:
+- Python 3.12: Core programming language for the project.
+- XGBoost: Machine learning algorithm for training the prediction model.
+- AWS S3: For storing datasets and model artifacts.
+- AWS SageMaker: For training, tuning, and deploying machine learning models.
+- AWS Lambda: For scalable, serverless execution of tasks.
+- AWS Step Functions: To orchestrate the end-to-end pipeline.
+- AWS CloudWatch: For monitoring and logging the pipeline processes.
+
+This project is designed to automate the entire machine learning workflow from data preparation to model deployment, ensuring scalability and efficiency in production environments.
+
 
 ## Installation
 
