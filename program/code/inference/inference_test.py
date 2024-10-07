@@ -2,15 +2,15 @@ import json
 import os
 import shutil
 import tarfile
+import tempfile
 from pathlib import Path
 
 import pytest
-import tempfile
+from dotenv import load_dotenv
 
-from pythonProject.program.code.preprocessor.preprocessor import preprocess
 from pythonProject.program.code.containers.training.train import train
 from pythonProject.program.code.inference.inference import model_fn, input_fn, predict_fn, output_fn
-from dotenv import load_dotenv
+from pythonProject.program.code.preprocessor.preprocessor import preprocess
 
 load_dotenv()
 
@@ -28,6 +28,8 @@ def directory():
 
     directory = Path(directory)
 
+    os.environ["TEST"] = 'True'
+
     preprocess(base_directory=directory)
 
     train(
@@ -37,7 +39,6 @@ def directory():
         early_stopping_rounds=50,
         hyperparameters={},
         pipeline_path=directory / "model",
-        experiment=None
     )
 
     # After training a model, we need to prepare a package just like

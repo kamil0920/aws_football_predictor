@@ -1,30 +1,28 @@
-import json
-import os
 import argparse
+import os
 import tarfile
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
-from pathlib import Path
-
 import xgboost as xgb
 from scipy.sparse import csr_matrix
 from sklearn.metrics import f1_score
-from xgboost import XGBClassifier
-from xgboost import cv
-from xgboost import DMatrix
 
 
 def get_hook_config(train_dmatrix, validation_dmatrix, hyperparameters):
-    from smdebug.xgboost import Hook
+    is_test = os.getenv('TEST')
+    if is_test is None:
+        from smdebug.xgboost import Hook
 
-    hook = Hook.create_from_json_file()
-    hook.train_data = train_dmatrix
-    hook.validation_data = validation_dmatrix
-    hook.hyperparameters = hyperparameters
-    print(f'hook: {hook}')
-    return hook
+        hook = Hook.create_from_json_file()
+        hook.train_data = train_dmatrix
+        hook.validation_data = validation_dmatrix
+        hook.hyperparameters = hyperparameters
+        print(f'hook: {hook}')
+        return [hook]
+    else:
+        return None
 
 
 def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperparameters):
@@ -45,7 +43,7 @@ def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperp
         num_boost_round=120,
         evals=[(dtrain, 'train'), (dval, 'eval')],
         early_stopping_rounds=early_stopping_rounds,
-        callbacks=[hook]
+        callbacks=hook
     )
 
     y_pred = model.predict(dval)

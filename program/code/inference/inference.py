@@ -1,14 +1,11 @@
-import os
 import json
+import os
 from io import StringIO
+from pathlib import Path
 
-import requests
 import joblib
 import numpy as np
 import pandas as pd
-from pathlib import Path
-
-import sklearn
 import xgboost as xgb
 
 try:
@@ -77,10 +74,15 @@ def input_fn(request_body, request_content_type):
         if "result_match" in df.columns:
             df = df.drop("result_match", axis=1)
 
+    print(f'df csv info: {df.info()}')
+    print(df.head(5))
+
+    converted_df = _convert_columns_to_numeric(df)
+
     features_pipeline = _get_feature_pipeline()
 
     try:
-        transformed_data = features_pipeline.transform(df)
+        transformed_data = features_pipeline.transform(converted_df)
         print("Data transformation successful.")
     except Exception as e:
         raise RuntimeError(f"Failed to transform data: {e}")
@@ -166,3 +168,9 @@ def _get_classes():
         raise RuntimeError(f"Failed to load target pipeline: {e}")
     classes = target_pipeline.named_transformers_["result_match"].categories_[0]
     return classes
+
+
+def _convert_columns_to_numeric(df):
+    for column in df.columns:
+        df[column] = pd.to_numeric(df[column], errors='coerce')
+    return df

@@ -1,15 +1,15 @@
 import os
 import tarfile
 import tempfile
+from pathlib import Path
+
 import joblib
 import numpy as np
 import pandas as pd
-
-from pathlib import Path
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OrdinalEncoder
 
 
@@ -99,10 +99,6 @@ def _save_baseline(base_directory, df_train, df_test):
 
         df = data.copy().dropna()
 
-        # We want to save the header only for the train baseline
-        # not for test baseline. We'll use test baseline to generate predictions
-        # later and we can't have header line because model won't
-        # be able to make prediction for it.
         df.to_csv(baseline_path / f"{split}-baseline.csv", index=False)
 
 

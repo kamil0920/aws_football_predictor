@@ -2,16 +2,15 @@ import json
 import os
 import shutil
 import tarfile
+import tempfile
 from pathlib import Path
 
 import pytest
-import tempfile
-
-from evaluation import evaluate
 from dotenv import load_dotenv
 
-from pythonProject.program.code.preprocessor.preprocessor import preprocess
+from evaluation import evaluate
 from pythonProject.program.code.containers.training.train import train
+from pythonProject.program.code.preprocessor.preprocessor import preprocess
 
 load_dotenv()
 
@@ -25,6 +24,8 @@ def directory():
     shutil.copy2(str(os.environ['DATA_FILEPATH_Y']), input_directory / "y.csv")
 
     directory = Path(directory)
+
+    os.environ["TEST"] = 'True'
 
     preprocess(base_directory=directory)
 
@@ -44,7 +45,7 @@ def directory():
         train_path=directory / "train",
         pipeline_path=directory / "model",
         hyperparameters=params,
-        experiment=None
+        validation_path=directory / "validation"
     )
 
     # After training a model, we need to prepare a package just like
@@ -68,13 +69,6 @@ def test_evaluate_generates_evaluation_report(directory):
     output = os.listdir(directory)
     assert "evaluation.json" in output
 
-
-def test_evaluation_report_contains_accuracy(directory):
-    with open(directory / "evaluation.json", 'r') as file:
-        report = json.load(file)
-
-    assert "metrics" in report
-    assert "precision" in report["metrics"]
 
 def test_evaluation_report_contains_accuracy(directory):
     with open(directory / "evaluation.json", 'r') as file:

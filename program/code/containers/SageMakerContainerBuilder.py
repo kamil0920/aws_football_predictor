@@ -19,10 +19,10 @@ class SageMakerContainerBuilder:
 
     def create_requirements(self):
         requirements = """sagemaker-training
-pandas==2.2.2
+pandas==2.0.2
 numpy
 xgboost-cpu==2.1.1
-scikit-learn==1.5.1
+scikit-learn==1.3.2
 scipy
 sagemaker
 smdebug"""
