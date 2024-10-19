@@ -116,13 +116,7 @@ if __name__ == "__main__":
     print(f'xgb version: {xgb.__version__}')
 
     train(
-        # This is the location where we need to save our model. SageMaker will
-        # create a model.tar.gz file with anything inside this directory when
-        # the training script finishes.
         model_directory=os.environ["SM_MODEL_DIR"],
-
-        # SageMaker creates one channel for each one of the inputs to the
-        # Training Step.
         train_path=os.environ["SM_CHANNEL_TRAIN"],
         validation_path=os.environ["SM_CHANNEL_VALIDATION"],
         pipeline_path=os.environ["SM_CHANNEL_PIPELINE"],

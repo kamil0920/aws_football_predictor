@@ -7,7 +7,7 @@ import tempfile
 
 from dotenv import load_dotenv
 
-from pythonProject.program.code.preprocessor.preprocessor import preprocess
+from aws_football_predictor.program.code.preprocessor.preprocessor import preprocess
 from train import train
 
 load_dotenv()
@@ -20,16 +20,17 @@ def directory():
     input_directory.mkdir(parents=True, exist_ok=True)
     shutil.copy2(str(os.environ['DATA_FILEPATH_X']), input_directory / "df.csv")
     shutil.copy2(str(os.environ['DATA_FILEPATH_Y']), input_directory / "y.csv")
+    os.environ["TEST"] = 'True'
 
     directory = Path(directory)
     preprocess(base_directory=directory)
     train(
         model_directory=directory / "model",
         train_path=directory / "train",
+        validation_path=directory / "validation",
         pipeline_path=directory / "model",
         early_stopping_rounds=50,
-        hyperparameters={},
-        experiment=None
+        hyperparameters={}
     )
 
     yield directory
