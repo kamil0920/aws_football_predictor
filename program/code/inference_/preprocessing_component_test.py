@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import tarfile
@@ -11,7 +10,7 @@ from dotenv import load_dotenv
 import pytest
 
 from preprocessing_component import input_fn, predict_fn, output_fn, model_fn
-from program.code import preprocessor
+from aws_football_predictor.program.code.containers.preprocessor import preprocessor
 
 load_dotenv()
 

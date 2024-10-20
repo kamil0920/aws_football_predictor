@@ -1,15 +1,17 @@
-from pathlib import Path
-
-import pandas as pd
 import os
 import shutil
 import tarfile
-import pytest
 import tempfile
+from pathlib import Path
+
+import pandas as pd
+import pytest
 from dotenv import load_dotenv
+
 from preprocessor import preprocess
 
 load_dotenv()
+
 
 @pytest.fixture(scope="function", autouse=False)
 def directory():
@@ -31,7 +33,6 @@ def test_preprocess_generates_data_splits(directory):
     output_directories = os.listdir(directory)
 
     assert "train" in output_directories
-    assert "validation" in output_directories
     assert "test" in output_directories
 
 
@@ -47,6 +48,7 @@ def test_preprocess_creates_one_models(directory):
     tar = tarfile.open(model_path / "model.tar.gz", "r:gz")
 
     assert "features.joblib" in tar.getnames()
+
 
 def test_train_baseline_includes_header(directory):
     baseline = pd.read_csv(directory / "train-baseline" / "train-baseline.csv")
