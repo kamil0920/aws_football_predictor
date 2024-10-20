@@ -5,6 +5,7 @@ COPY requirements.txt .
 RUN pip install --user --upgrade pip
 RUN pip3 install -r requirements.txt
 
-COPY train.py /opt/ml/code/train.py
+COPY ../train.py /opt/ml/code/train.py
+
 ENV SAGEMAKER_PROGRAM train.py
                              

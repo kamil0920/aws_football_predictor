@@ -7,7 +7,7 @@ import tempfile
 
 from dotenv import load_dotenv
 
-from aws_football_predictor.program.code.preprocessor.preprocessor import preprocess
+from aws_football_predictor.program.code.containers.preprocessor.preprocessor import preprocess
 from train import train
 
 load_dotenv()

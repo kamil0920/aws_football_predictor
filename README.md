@@ -61,8 +61,16 @@ In main directory create .env:
    - Example: `/path/to/data.csv`.
 
 10. **DATA_FILEPATH_Y**:
-   - Provide the **local path** to your target variable dataset file (labels file), such as the CSV file containing the labels for your training data.
-   - Example: `/path/to/target.csv`.
+    - Provide the **local path** to your target variable dataset file (labels file), such as the CSV file containing the labels for your training data.
+    - Example: `/path/to/target.csv`.
+
+11. **ACCESS_KEY**:
+    - Provide your **AWS access key** which is used to authenticate and interact with AWS services, including SageMaker.
+    - Example: `AKIAIOSFODNN7EXAMPLE`.
+
+12. **SECRET_KEY**:
+    - Provide your **AWS secret access key** which, together with the access key, is used to authenticate your requests to AWS services.
+    - Example: `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`.
 
 ---
 
@@ -82,5 +90,5 @@ DATA_FILEPATH_X=/path/to/data.csv
 DATA_FILEPATH_Y=/path/to/target.csv
 ```
 
-To set up the project, execute this notebook: [initial_environment_setup.ipynb](C:\Users\kamil\Documents\football_project\aws_pipeline\pythonProject\program\code\config\initial_environment_setup.ipynb).
-After completing the setup, you can run the main end-to-end pipeline.
+To set up the project, execute this notebook: [initial_setup.ipynb](program/code/config/initial_setup.ipynb).
+After completing the setup, you can run the main end-to-end pipeline [main_pipeline.ipynb](program%2Fmain_pipeline.ipynb).
