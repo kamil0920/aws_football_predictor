@@ -2,15 +2,15 @@ import json
 import os
 import shutil
 import tarfile
+import tempfile
 from pathlib import Path
 
 import pytest
-import tempfile
-
-from preprocessor import preprocess
-from train import train
-from evaluation import evaluate
 from dotenv import load_dotenv
+
+from evaluation import evaluate
+from pythonProject.program.code.containers.training.train import train
+from pythonProject.program.code.preprocessor.preprocessor import preprocess
 
 load_dotenv()
 
@@ -24,6 +24,8 @@ def directory():
     shutil.copy2(str(os.environ['DATA_FILEPATH_Y']), input_directory / "y.csv")
 
     directory = Path(directory)
+
+    os.environ["TEST"] = 'True'
 
     preprocess(base_directory=directory)
 
@@ -41,18 +43,19 @@ def directory():
     train(
         model_directory=directory / "model",
         train_path=directory / "train",
-        validation_path=directory / "validation",
-        hyperparameters=params
+        pipeline_path=directory / "model",
+        hyperparameters=params,
+        validation_path=directory / "validation"
     )
 
     # After training a model, we need to prepare a package just like
     # SageMaker would. This package is what the evaluation script is
     # expecting as an input.
     with tarfile.open(directory / "model.tar.gz", "w:gz") as tar:
-        tar.add(directory / "model" / "001", arcname="001")
+        tar.add(directory / "model")
 
     evaluate(
-        model_path=directory,
+        model_path=directory / "model",
         test_path=directory / "test",
         output_path=directory / "evaluation",
     )

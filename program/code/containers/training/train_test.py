@@ -1,18 +1,17 @@
 import os
 import shutil
-import tarfile
 from pathlib import Path
 
 import pytest
 import tempfile
-import joblib
 
 from dotenv import load_dotenv
 
-from preprocessor import preprocess
+from aws_football_predictor.program.code.containers.preprocessor.preprocessor import preprocess
 from train import train
 
 load_dotenv()
+
 
 @pytest.fixture(scope="function", autouse=False)
 def directory():
@@ -21,6 +20,7 @@ def directory():
     input_directory.mkdir(parents=True, exist_ok=True)
     shutil.copy2(str(os.environ['DATA_FILEPATH_X']), input_directory / "df.csv")
     shutil.copy2(str(os.environ['DATA_FILEPATH_Y']), input_directory / "y.csv")
+    os.environ["TEST"] = 'True'
 
     directory = Path(directory)
     preprocess(base_directory=directory)
@@ -28,7 +28,9 @@ def directory():
         model_directory=directory / "model",
         train_path=directory / "train",
         validation_path=directory / "validation",
-        early_stopping_rounds=50
+        pipeline_path=directory / "model",
+        early_stopping_rounds=50,
+        hyperparameters={}
     )
 
     yield directory
@@ -37,8 +39,6 @@ def directory():
 
 
 def test_train_saves_a_folder_with_model_assets(directory):
-    output = os.listdir(directory / "model")
-    assert "001" in output
 
-    assets = os.listdir(directory / "model" / "001")
-    assert "saved_model.bst" in assets
+    assets = os.listdir(directory / "model")
+    assert "saved_model.xgb" in assets
