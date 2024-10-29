@@ -19,7 +19,6 @@ def get_hook_config(train_dmatrix, validation_dmatrix, hyperparameters):
         hook.train_data = train_dmatrix
         hook.validation_data = validation_dmatrix
         hook.hyperparameters = hyperparameters
-        print(f'hook: {hook}')
         return [hook]
     else:
         return None
