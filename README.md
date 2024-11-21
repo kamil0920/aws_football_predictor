@@ -12,6 +12,45 @@ This project implements an end-to-end machine learning pipeline for predicting f
 
 This project is designed to automate the entire machine learning workflow from data preparation to model deployment, ensuring scalability and efficiency in production environments.
 
+## Automation with AWS Lambda Functions
+
+To enhance automation and responsiveness, this project utilizes AWS Lambda functions for two critical tasks:
+
+### 1. Automatic Pipeline Execution
+
+- A Lambda function is triggered automatically whenever new data is uploaded to a specified S3 bucket.
+- This function monitors S3 events and ensures the machine learning pipeline processes the latest data without requiring manual intervention.
+
+### 2. Automated Model Deployment
+
+- After training, models are saved to a model registry with a status of `'PendingManualApproval'`.
+- A second Lambda function monitors this status. When the status is manually changed to `'Approved'`, the function automatically creates a SageMaker endpoint for model deployment.
+
+### Event-Driven Architecture
+
+- **S3 Event Trigger**: Initiates the pipeline when new data arrives.
+- **Model Registry Trigger**: Deploys a model upon manual approval, ensuring flexibility and human oversight.
+
+---
+
+## Model Evaluation and Deployment Strategy
+
+### Accuracy Threshold Filtering
+
+- Only models exceeding a predefined accuracy threshold are saved and considered for deployment.
+- This ensures only high-performing models are deployed, maintaining the quality of predictions.
+
+### Shadow Deployment
+
+- **Parallel Testing**: New models are deployed alongside the current production model to test them in real-time with live data.
+- **Performance Monitoring**: The outputs of the shadow model are compared with the production model.
+- **Safe Transition**: If the shadow model performs better, it is promoted to replace the production model.
+
+---
+
+This automation and deployment strategy ensures the pipeline is efficient, reliable, and maintains high-quality performance in production environments.
+
+
 
 ## Installation
 
