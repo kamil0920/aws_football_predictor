@@ -8,19 +8,21 @@ import pandas as pd
 import xgboost as xgb
 from scipy.sparse import csr_matrix
 from sklearn.metrics import f1_score
+from smdebug.xgboost import Hook
 
 
 def get_hook_config(train_dmatrix, validation_dmatrix, hyperparameters):
     is_test = os.getenv('TEST')
     if is_test is None:
-        from smdebug.xgboost import Hook
+        hook = Hook(
+            out_dir="/opt/ml/output/tensors",
+        )
 
-        hook = Hook.create_from_json_file()
+        hook.include_collections = ['average_shap', 'full_shap', 'metrics', 'feature_importance']
         hook.train_data = train_dmatrix
         hook.validation_data = validation_dmatrix
         hook.hyperparameters = hyperparameters
-        print(f'hook: {hook}')
-        return [hook]
+        return hook
     else:
         return None
 
@@ -43,7 +45,7 @@ def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperp
         num_boost_round=120,
         evals=[(dtrain, 'train'), (dval, 'eval')],
         early_stopping_rounds=early_stopping_rounds,
-        callbacks=hook
+        callbacks=[hook] if hook is not None else None
     )
 
     y_pred = model.predict(dval)
@@ -51,7 +53,6 @@ def evaluate_model(X_train, X_val, y_train, y_val, early_stopping_rounds, hyperp
 
     f1 = f1_score(y_val, y_pred)
     return f1, model
-
 
 def train(model_directory, train_path, validation_path, hyperparameters, pipeline_path, early_stopping_rounds=25):
     train_files = [file for file in Path(train_path).glob("*.csv")]
