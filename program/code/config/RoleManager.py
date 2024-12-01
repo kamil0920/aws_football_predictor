@@ -207,7 +207,6 @@ class RoleManager:
             return lambda_role_arn
 
         except self.iam_client.exceptions.EntityAlreadyExistsException:
-            # Role already exists, fetch its ARN
             role_response = self.iam_client.get_role(RoleName=lambda_role_name)
             lambda_role_arn = role_response["Role"]["Arn"]
             self.logger.info(f'Role "{lambda_role_name}" already exists with ARN "{lambda_role_arn}".')
@@ -224,11 +223,9 @@ class RoleManager:
         custom_lambda_policy_name = 'LambdaCustomPolicy'
 
         try:
-            # Define the policy document with the necessary permissions for both Lambda functions
             policy_document = {
                 "Version": "2012-10-17",
                 "Statement": [
-                    # Lambda-related actions
                     {
                         "Effect": "Allow",
                         "Action": [
@@ -243,7 +240,6 @@ class RoleManager:
                             "arn:aws:lambda:eu-north-1:284415450706:function:deployment_fn"
                         ]
                     },
-                    # SageMaker-related actions for model creation and endpoint management
                     {
                         "Effect": "Allow",
                         "Action": [
@@ -270,7 +266,6 @@ class RoleManager:
                         "Action": "sagemaker:StartPipelineExecution",
                         "Resource": f"arn:aws:sagemaker:{region}:{self.account_id}:pipeline/{pipeline_name}"
                     },
-                    # S3-related permissions for data capture destination
                     {
                         "Effect": "Allow",
                         "Action": [
@@ -289,7 +284,6 @@ class RoleManager:
                         "Action": "iam:PassRole",
                         "Resource": f"arn:aws:iam::284415450706:role/{lambda_role_name}"
                     },
-                    # DynamoDB-related permissions for tracking file uploads (same as before)
                     {
                         "Effect": "Allow",
                         "Action": [
@@ -301,7 +295,6 @@ class RoleManager:
                         ],
                         "Resource": f"arn:aws:dynamodb:{region}:{self.account_id}:table/S3FileUploadStatus"
                     },
-                    # CloudWatch Logs permissions for Lambda logging
                     {
                         "Effect": "Allow",
                         "Action": "logs:CreateLogGroup",
@@ -329,7 +322,6 @@ class RoleManager:
             return policy_response["Policy"]["Arn"]
 
         except self.iam_client.exceptions.EntityAlreadyExistsException:
-            # Policy already exists, return its ARN
             policy_arn = f"arn:aws:iam::{self.account_id}:policy/{custom_lambda_policy_name}"
             self.logger.debug(f'Policy "{custom_lambda_policy_name}" already exists.')
             return policy_arn
