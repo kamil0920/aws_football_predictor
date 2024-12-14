@@ -126,7 +126,7 @@ def _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X
 
     train.to_csv(train_path / "train.csv", index=False)
     validation.to_csv(validation_path / "validation.csv", index=False)
-    test.to_csv(test_path / "test.csv", index=False)
+    test.to_csv(test_path / "test.csv", index=False, header=False)
 
 
 def _save_model(base_directory, target_transformer, features_transformer):

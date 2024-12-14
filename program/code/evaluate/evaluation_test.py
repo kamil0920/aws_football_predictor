@@ -9,8 +9,8 @@ import pytest
 from dotenv import load_dotenv
 
 from evaluation import evaluate
-from pythonProject.program.code.containers.training.train import train
-from pythonProject.program.code.preprocessor.preprocessor import preprocess
+from aws_football_predictor.program.code.containers.training.train import train
+from aws_football_predictor.program.code.containers.preprocessor.preprocessor import preprocess
 
 load_dotenv()
 
@@ -56,7 +56,7 @@ def directory():
 
     evaluate(
         model_path=directory / "model",
-        test_path=directory / "test",
+        input_path=directory / "test",
         output_path=directory / "evaluation",
     )
 

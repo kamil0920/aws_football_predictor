@@ -7,10 +7,10 @@ from xgboost import XGBClassifier
 from sklearn.metrics import f1_score, precision_score, recall_score
 
 
-def evaluate(model_path, test_path, output_path):
-    X_test = pd.read_csv(Path(test_path) / "test.csv")
-    y_test = X_test['result_match']
-    X_test.drop(labels=['result_match'], axis=1, inplace=True)
+def evaluate(model_path, input_path, output_path):
+    X_test = pd.read_csv(Path(input_path) / "test.csv")
+    y_test = X_test[X_test.columns[0]]
+    X_test.drop(X_test.columns[0], axis=1, inplace=True)
 
     with tarfile.open(Path(model_path) / "model.tar.gz") as tar:
         tar.extractall(path=Path(model_path))
@@ -53,6 +53,6 @@ def evaluate(model_path, test_path, output_path):
 if __name__ == "__main__":
     evaluate(
         model_path="/opt/ml/processing/model/",
-        test_path="/opt/ml/processing/test/",
+        input_path="/opt/ml/processing/test/",
         output_path="/opt/ml/processing/evaluation/"
     )

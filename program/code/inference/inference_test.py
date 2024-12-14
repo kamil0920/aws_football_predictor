@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
-from pythonProject.program.code.containers.training.train import train
-from pythonProject.program.code.inference.inference import model_fn, input_fn, predict_fn, output_fn
-from pythonProject.program.code.preprocessor.preprocessor import preprocess
+from aws_football_predictor.program.code.containers.training.train import train
+from aws_football_predictor.program.code.inference.inference import model_fn, input_fn, predict_fn, output_fn
+from aws_football_predictor.program.code.containers.preprocessor.preprocessor import preprocess
 
 load_dotenv()
 
@@ -214,6 +214,14 @@ def test_output_response_predictions_values(directory, payload_csv):
     assert response[0][0] == 'home_win'
     assert response[1][0] == 'home_win'
     assert response[2][0] == 'home_not_win'
+
+    assert response[0][1] == 1
+    assert response[1][1] == 1
+    assert response[2][1] == 0
+
+    assert isinstance(response[0][2], float)
+    assert isinstance(response[1][2], float)
+    assert isinstance(response[2][2], float)
 
 
 def test_handler_deals_with_an_invalid_payload(directory):

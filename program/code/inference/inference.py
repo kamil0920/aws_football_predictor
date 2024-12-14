@@ -53,41 +53,32 @@ def model_fn(model_dir):
     return model
 
 
-def parse_confidence(lst, func):
-    return [(x[0], func(x[1])) for x in lst]
-
-
 def input_fn(request_body, request_content_type):
     df = None
 
     if request_content_type == "text/csv":
-        df = pd.read_csv(StringIO(request_body), header=None, skipinitialspace=True)
+        df = pd.read_csv(StringIO(request_body), skipinitialspace=True, header=None)
 
+        ground_truth_labels = None
         if len(df.columns) == len(FEATURE_COLUMNS) + 1:
+            ground_truth_labels = df.iloc[:, 0].to_numpy(copy=True)
             df = df.drop(df.columns[-1], axis=1)
 
         df.columns = FEATURE_COLUMNS
 
-    if request_content_type == "application/json":
+    elif request_content_type == "application/json":
         df = pd.json_normalize(json.loads(request_body))
 
+        ground_truth_labels = None
         if "result_match" in df.columns:
+            ground_truth_labels = df["result_match"].copy()
             df = df.drop("result_match", axis=1)
 
-    print(f'df csv info: {df.info()}')
-    print(df.head(5))
-
     converted_df = _convert_columns_to_numeric(df)
-
     features_pipeline = _get_feature_pipeline()
+    transformed_data = features_pipeline.transform(converted_df)
 
-    try:
-        transformed_data = features_pipeline.transform(converted_df)
-        print("Data transformation successful.")
-    except Exception as e:
-        raise RuntimeError(f"Failed to transform data: {e}")
-
-    return transformed_data
+    return {"features": transformed_data, "ground_truth": ground_truth_labels}
 
 
 def _get_feature_pipeline():
@@ -102,58 +93,124 @@ def _get_feature_pipeline():
 
 
 def predict_fn(input_data, model):
-    print(f"Input data type: {type(input_data)}")
-    if hasattr(input_data, 'shape'):
-        print(f"Input data shape: {input_data.shape}")
+    features = input_data["features"]
+    ground_truth = input_data["ground_truth"]
 
-    try:
-        predictions = model.predict_proba(input_data)
-    except Exception as e:
-        raise RuntimeError(f"Failed to make predictions: {e}")
+    preds = model.predict_proba(features)
 
-    print(f"Predictions:: {predictions}")
-
-    return predictions
+    return {"predictions": preds, "ground_truth": ground_truth}
 
 
 def output_fn(prediction, response_content_type):
     classes = _get_classes()
+    predictions = prediction["predictions"]
+    ground_truth_labels = prediction["ground_truth"]
+
+    prediction_data = _prepare_prediction_data(predictions, classes, ground_truth_labels)
 
     if response_content_type == "text/csv":
         print("Processing CSV response")
-        predictions = [(classes[np.argmax(x)], x[np.argmax(x)]) for x in prediction]
-
-        result = worker.Response(encoders.encode(predictions, response_content_type), mimetype=response_content_type) if worker else (predictions, response_content_type)
-        print(f'result: {result}')
+        result_rows = _prepare_csv_response(prediction_data)
+        result = worker.Response(encoders.encode(result_rows, response_content_type), mimetype=response_content_type) if worker else (result_rows, response_content_type)
         return result
 
-    if response_content_type == "application/json":
+    elif response_content_type == "application/json":
         print("Processing JSON response")
-        predictions = [{'prediction': classes[np.argmax(x)], 'confidence': float(x[np.argmax(x)])} for x in prediction]
-        result = json.dumps(predictions)
-
-        print(f'result: {result}')
-
-        return (
-            worker.Response(result, mimetype=response_content_type)
-            if worker
-            else (result, response_content_type)
-        )
+        result = _prepare_json_response(prediction_data)
+        return worker.Response(result, mimetype=response_content_type) if worker else (result, response_content_type)
 
     elif response_content_type == "application/jsonlines":
         print("Processing JSON Lines response")
-        predictions = [{'prediction': classes[np.argmax(x)], 'confidence': float(x[np.argmax(x)])} for x in prediction]
-        result = "\n".join([json.dumps(pred) for pred in predictions])
-
-        print(f'result: {result}')
-
-        return (
-            worker.Response(result, mimetype=response_content_type)
-            if worker
-            else (result, response_content_type)
-        )
+        result = _prepare_jsonlines_response(prediction_data)
+        return worker.Response(result, mimetype=response_content_type) if worker else (result, response_content_type)
 
     raise Exception(f"{response_content_type} accept type is not supported.")
+
+
+def _prepare_prediction_data(predictions, classes, ground_truth_labels):
+    prediction_data = []
+
+    has_ground_truth = ground_truth_labels is not None
+
+    if has_ground_truth:
+        for x, gt in zip(predictions, ground_truth_labels):
+            predicted_label = classes[np.argmax(x)]
+            probability = float(x[1])
+            numerical_label = 1 if predicted_label == 'home_win' else 0
+            numerical_ground_truth_label = 1 if gt == 'home_win' else 0
+
+            prediction_data.append({
+                "ground_truth": gt,
+                "numerical_ground_truth_label": numerical_ground_truth_label,
+                "predicted_label": predicted_label,
+                "predicted_numerical_label": numerical_label,
+                "probability": probability
+            })
+    else:
+        for x in predictions:
+            predicted_label = classes[np.argmax(x)]
+            probability = float(x[1])
+            numerical_label = 1 if predicted_label == 'home_win' else 0
+
+            prediction_data.append({
+                "predicted_label": predicted_label,
+                "predicted_numerical_label": numerical_label,
+                "probability": probability
+            })
+
+    return prediction_data
+
+
+def _prepare_csv_response(prediction_data):
+    if not prediction_data:
+        return []
+
+    has_ground_truth = "ground_truth" in prediction_data[0]
+
+    if not has_ground_truth:
+        # header = ('predicted_label', 'predicted_numerical_label', 'probability')
+        rows = [
+            (pd["predicted_label"], pd["predicted_numerical_label"], pd["probability"])
+            for pd in prediction_data
+        ]
+    else:
+        # header = ('ground_truth_labels', 'numerical_ground_truth_labels',
+        #           'predicted_label', 'predicted_numerical_label', 'probability')
+        rows = [
+            (pd["ground_truth"], pd["numerical_ground_truth_label"], pd["predicted_label"], pd["predicted_numerical_label"], pd["probability"])
+            for pd in prediction_data
+        ]
+
+    return rows
+
+
+def _prepare_json_response(prediction_data):
+    json_list = []
+    for pd in prediction_data:
+        item = {
+            'prediction': pd["predicted_label"],
+            'confidence': pd["probability"],
+            'numerical_label': pd["predicted_numerical_label"]
+        }
+        if "ground_truth" in pd:
+            item['ground_truth'] = pd["ground_truth"]
+        json_list.append(item)
+
+    return json.dumps(json_list)
+
+
+def _prepare_jsonlines_response(prediction_data):
+    lines = []
+    for pd in prediction_data:
+        line_dict = {
+            'prediction': pd["predicted_label"],
+            'confidence': pd["probability"],
+            'numerical_label': pd["predicted_numerical_label"]
+        }
+        if "ground_truth" in pd:
+            line_dict['ground_truth'] = pd["ground_truth"]
+        lines.append(json.dumps(line_dict))
+    return "\n".join(lines)
 
 
 def _get_classes():
