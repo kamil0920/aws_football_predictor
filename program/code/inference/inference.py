@@ -144,7 +144,7 @@ def _prepare_prediction_data(predictions, classes, ground_truth_labels):
                 "numerical_ground_truth_label": numerical_ground_truth_label,
                 "predicted_label": predicted_label,
                 "predicted_numerical_label": numerical_label,
-                "probability": probability
+                "win_probability": probability
             })
     else:
         for x in predictions:
@@ -155,7 +155,7 @@ def _prepare_prediction_data(predictions, classes, ground_truth_labels):
             prediction_data.append({
                 "predicted_label": predicted_label,
                 "predicted_numerical_label": numerical_label,
-                "probability": probability
+                "win_probability": probability
             })
 
     return prediction_data
@@ -170,14 +170,14 @@ def _prepare_csv_response(prediction_data):
     if not has_ground_truth:
         # header = ('predicted_label', 'predicted_numerical_label', 'probability')
         rows = [
-            (pd["predicted_label"], pd["predicted_numerical_label"], pd["probability"])
+            (pd["predicted_label"], pd["predicted_numerical_label"], pd["win_probability"])
             for pd in prediction_data
         ]
     else:
         # header = ('ground_truth_labels', 'numerical_ground_truth_labels',
         #           'predicted_label', 'predicted_numerical_label', 'probability')
         rows = [
-            (pd["ground_truth"], pd["numerical_ground_truth_label"], pd["predicted_label"], pd["predicted_numerical_label"], pd["probability"])
+            (pd["ground_truth"], pd["numerical_ground_truth_label"], pd["predicted_label"], pd["predicted_numerical_label"], pd["win_probability"])
             for pd in prediction_data
         ]
 
@@ -189,7 +189,7 @@ def _prepare_json_response(prediction_data):
     for pd in prediction_data:
         item = {
             'prediction': pd["predicted_label"],
-            'confidence': pd["probability"],
+            'confidence': pd["win_probability"],
             'numerical_label': pd["predicted_numerical_label"]
         }
         if "ground_truth" in pd:
@@ -204,7 +204,7 @@ def _prepare_jsonlines_response(prediction_data):
     for pd in prediction_data:
         line_dict = {
             'prediction': pd["predicted_label"],
-            'confidence': pd["probability"],
+            'confidence': pd["win_probability"],
             'numerical_label': pd["predicted_numerical_label"]
         }
         if "ground_truth" in pd:

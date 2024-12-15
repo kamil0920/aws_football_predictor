@@ -99,7 +99,12 @@ def _save_baseline(base_directory, df_train, df_test):
 
         df = data.copy().dropna()
 
-        df.to_csv(baseline_path / f"{split}-baseline.csv", index=False)
+        header = True if split is "train" else False
+
+        if header is True:
+            df = df.drop("result_match", axis=1)
+
+        df.to_csv(baseline_path / f"{split}-baseline.csv", index=False, header=header)
 
 
 def _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X_test, y_test, columns):
@@ -126,7 +131,7 @@ def _save_splits(base_directory, X_train, y_train, X_validation, y_validation, X
 
     train.to_csv(train_path / "train.csv", index=False)
     validation.to_csv(validation_path / "validation.csv", index=False)
-    test.to_csv(test_path / "test.csv", index=False, header=False)
+    test.to_csv(test_path / "test.csv", index=False)
 
 
 def _save_model(base_directory, target_transformer, features_transformer):

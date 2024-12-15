@@ -81,8 +81,8 @@ def lambda_handler(event, context):
                 {"CaptureMode": "Output"},
             ],
             "CaptureContentTypeHeader": {
-                "CsvContentTypes": ["text/csv", "application/octect-stream"],
-                "JsonContentTypes": ["application/json", "application/octect-stream"],
+                "CsvContentTypes": ["text/csv"],
+                "JsonContentTypes": ["application/json"],
             },
         },
     )
